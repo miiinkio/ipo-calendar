@@ -180,6 +180,9 @@ window.d3 = {
 .ip-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
 
 /* 종목 상세 */
+.ip-detail .dartbtn { margin-top: var(--cds-gap-md); display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 10px 12px; border-radius: var(--cds-radius); background: var(--color-fg); color: var(--color-panel); font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); text-decoration: none; box-sizing: border-box; }
+.ip-detail .dartbtn:hover { opacity: .88; }
+.ip-detail .dartbtn .arr { font-size: 13px; }
 .ip-detail .dh { margin: var(--cds-gap-xs) 0 var(--cds-gap-md); }
 .ip-detail .dname { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); line-height: 1.25; margin: 0 0 var(--cds-gap-sm); overflow-wrap: anywhere; }
 .ip-detail .dmeta { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -479,6 +482,14 @@ window.d3 = {
 
     box.append(head, sum, tl, lk);
     if (r.note) { const n = mark(el('div', 'dnote', r.note), 'note', r.name); box.appendChild(n); }
+
+    // 5) DART 바로가기
+    const a = el('a', 'dartbtn');
+    const rcp = /^\d{14}$/.test(String(r.dart_rcp || '')) ? r.dart_rcp : null;
+    a.href = rcp ? 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=' + rcp : 'https://dart.fss.or.kr/dsac005/main.do';
+    a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.append(el('span', null, rcp ? 'DART 증권신고서 보기' : 'DART 공모게시판 열기'), el('span', 'arr', '↗'));
+    box.appendChild(a);
   }
 
   function fail(el) { el.replaceChildren(); const f = document.createElement('div'); f.className = 'ip-fail'; f.textContent = 'Failed to load'; el.appendChild(f); }
