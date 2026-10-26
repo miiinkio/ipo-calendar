@@ -17,7 +17,7 @@
   --font-anthropic-serif: 'Noto Serif KR', Georgia, serif;
   --color-bg: #f6f5f1; --color-panel: #ffffff; --color-fg: #1f1e1b; --color-fg-muted: #6b6860;
   --color-border-line: #e3e0d8; --color-ok: #1f7a4d; --color-warn: #a86a00; --color-bad: #c2352c;
-  --c0: #2f6fdf; --c1: #d9822b; --c2: #2e9d6a;
+  --c0: #2f6fdf; --c1: #d9822b; --c2: #2e9d6a; --c3: #8a5cd6; --c4: #e05d8c; --c5: #c98a1b; --c6: #2a9db5; --c7: #6d7a3a;
   --cds-font-size-caption: 12px; --cds-font-size-body: 14px; --cds-font-size-heading: 16px; --cds-font-size-title: 26px;
   --cds-font-weight-medium: 600;
   --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 12px; --cds-gap-lg: 20px; --cds-gap-xl: 32px;
@@ -29,7 +29,7 @@
   :root {
     --color-bg: #161614; --color-panel: #201f1c; --color-fg: #ecebe6; --color-fg-muted: #a3a097;
     --color-border-line: #34322d; --color-ok: #5cc794; --color-warn: #e0a64a; --color-bad: #ef6b61;
-    --c0: #6c9cf0; --c1: #e9a25a; --c2: #5cc794;
+    --c0: #6c9cf0; --c1: #e9a25a; --c2: #5cc794; --c3: #b08cf0; --c4: #f08ab0; --c5: #e6b452; --c6: #5fc3d8; --c7: #a8b56a;
     color-scheme: dark;
   }
 }
@@ -62,11 +62,23 @@ window.dash = (() => {
   });
   let w = window.innerWidth;
   window.addEventListener('resize', () => { if (window.innerWidth !== w) { w = window.innerWidth; fire(); } });
+  const calcs = {};
+  const data = (id) => {
+    if (calcs[id]) {
+      const ins = calcs[id].inputs.map(data);
+      if (ins.some((x) => x.status === 'error')) return { status: 'error', data: [] };
+      if (ins.some((x) => x.status !== 'ok')) return { status: 'loading', data: [] };
+      try { return { status: 'ok', data: calcs[id].fn(...ins.map((x) => x.data)) }; }
+      catch (e) { console.error(e); return { status: 'error', data: [] }; }
+    }
+    return state[id] || { status: 'missing', data: [] };
+  };
   return {
-    data: (id) => state[id] || { status: 'missing', data: [] },
+    data,
     onData: (fn) => { subs.push(fn); try { fn(); } catch (e) { console.error(e); } },
-    colors: ['var(--c0)', 'var(--c1)', 'var(--c2)', '#8a63d2', '#c2547a', '#3a9fb0', '#9a8a3a', '#6b6860'],
-    calc: () => {}, loader: () => {}, setLink: () => {}, refresh: () => {},
+    colors: ['var(--c0)', 'var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)', 'var(--c7)'],
+    calc: (id, spec) => { calcs[id] = spec; },
+    loader: () => {}, setLink: (h) => { try { history.replaceState(null, '', '#' + h); } catch (e) {} }, refresh: () => {},
     params: () => ({}), setParams: () => {}, resetParams: () => {},
   };
 })();
@@ -102,6 +114,11 @@ window.d3 = {
 .ip-nav .m { font-weight: var(--cds-font-weight-medium); min-width: 6.5rem; text-align: center; font-variant-numeric: tabular-nums; }
 .ip-legend { display: flex; gap: var(--cds-gap-md); flex-wrap: wrap; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: var(--cds-gap-sm) 0; }
 .ip-legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+.ip-tabs { display: inline-flex; gap: 2px; padding: 3px; margin-top: var(--cds-gap-sm); border-radius: var(--cds-radius); background: var(--color-bg); border: 1px solid var(--color-border-line); max-width: 100%; overflow-x: auto; }
+.ip-tabs button { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-md); border: 0; border-radius: calc(var(--cds-radius) - 3px); background: transparent; color: var(--color-fg-muted); cursor: pointer; white-space: nowrap; }
+.ip-tabs button[aria-selected="true"] { background: var(--color-panel); color: var(--color-fg); font-weight: var(--cds-font-weight-medium); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.ip-detail .lk { margin-top: var(--cds-gap-md); padding-top: var(--cds-gap-md); border-top: 1px solid var(--color-border-line); }
+.ip-detail .lk .fh { margin-bottom: var(--cds-gap-xs); }
 .ip-cal { display: flex; flex-direction: column; gap: 2px; min-height: 22rem; }
 .ip-cal .wdrow, .ip-cal .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: 2px; }
 .ip-cal .wd { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); text-align: center; padding-bottom: var(--cds-pad-xs); }
@@ -171,7 +188,12 @@ window.d3 = {
         <h2>월간 캘린더</h2>
         <div class="ip-nav"><button class="ip-prev" aria-label="이전 달">‹</button><span class="m ip-month"></span><button class="ip-next" aria-label="다음 달">›</button><button class="ip-today">오늘</button></div>
       </div>
-      <div class="ip-legend"><span><span class="ip-dot" data-c="0"></span>청약</span><span><span class="ip-dot" data-c="1"></span>환불</span><span><span class="ip-dot" data-c="2"></span>상장</span><span>· 종목을 누르면 상세가 보여요</span></div>
+      <div class="ip-tabs" role="tablist" aria-label="캘린더 보기">
+        <button role="tab" id="tab-sub" data-mode="sub" aria-selected="true">청약·환불·상장</button>
+        <button role="tab" id="tab-demand" data-mode="demand" aria-selected="false">수요예측</button>
+        <button role="tab" id="tab-lockup" data-mode="lockup" aria-selected="false">확약 해제</button>
+      </div>
+      <div class="ip-legend"></div>
       <div class="ip-cal dash-skeleton" data-source="ipo"></div>
     </section>
 
@@ -200,6 +222,7 @@ window.d3 = {
         <thead><tr>
           <th data-field="name" data-k="name">종목</th>
           <th data-field="market" data-k="market" class="opt">시장</th>
+          <th data-field="demand_start" data-k="demand_start" class="opt">수요예측 시작</th>
           <th data-field="sub_start" data-k="sub_start">청약 시작</th>
           <th data-field="sub_end" data-k="sub_end">청약 마감</th>
           <th data-field="refund" data-k="refund">환불일</th>
@@ -238,9 +261,62 @@ window.d3 = {
   let selected = null;
   const sortState = { k: 'sub_start', dir: 1 };
 
+  // 의무보유확약 해제일: 상장일 + 기간. 주말이면 다음 월요일(공휴일은 반영 안 함).
+  dash.calc('lockup', {
+    title: '확약 해제(매도가능)일',
+    description: '상장일에 15일·1개월·3개월·6개월을 더한 날. 주말이면 다음 월요일로 미룸.',
+    inputs: ['ipo'],
+    fn: (ipo) => {
+      const periods = [['15일', 0, 15], ['1개월', 1, 0], ['3개월', 3, 0], ['6개월', 6, 0]];
+      const out = [];
+      ipo.filter((r) => r.listing).forEach((r) => {
+        const [y, m, d] = r.listing.split('-').map(Number);
+        periods.forEach(([label, months, days]) => {
+          let t;
+          if (months) {
+            const last = new Date(Date.UTC(y, m - 1 + months + 1, 0)).getUTCDate();
+            t = new Date(Date.UTC(y, m - 1 + months, Math.min(d, last)));
+          } else t = new Date(Date.UTC(y, m - 1, d + days));
+          const wd = t.getUTCDay();
+          if (wd === 6) t.setUTCDate(t.getUTCDate() + 2);
+          if (wd === 0) t.setUTCDate(t.getUTCDate() + 1);
+          out.push({ key: r.name + '|' + label, name: r.name, period: label, date: t.toISOString().slice(0, 10) });
+        });
+      });
+      return out;
+    },
+  });
+
+  // 캘린더 탭
+  let mode = 'sub';
+  const MODES = {
+    sub: [[0, '청약'], [1, '환불'], [2, '상장']],
+    demand: [[3, '수요예측']],
+    lockup: [[4, '15일'], [5, '1개월'], [6, '3개월'], [7, '6개월']],
+  };
+  const LOCK_C = { '15일': 4, '1개월': 5, '3개월': 6, '6개월': 7 };
+  function drawLegend() {
+    const lg = document.querySelector('.ip-legend');
+    lg.replaceChildren();
+    MODES[mode].forEach(([c, label]) => {
+      const s = document.createElement('span'); const d = document.createElement('span');
+      d.className = 'ip-dot'; d.style.background = C[c]; s.append(d, document.createTextNode(label)); lg.appendChild(s);
+    });
+    const hint = document.createElement('span');
+    hint.textContent = mode === 'lockup' ? '· 상장일 기준, 주말이면 다음 거래일 (공휴일 미반영)' : mode === 'demand' ? '· 기관 대상 수요예측 기간' : '· 종목을 누르면 상세가 보여요';
+    lg.appendChild(hint);
+  }
+  document.querySelectorAll('.ip-tabs button').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.mode;
+    document.querySelectorAll('.ip-tabs button').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+    dash.setLink('tab-' + mode);
+    drawLegend(); drawCal();
+  }));
+  drawLegend();
+
   function select(name) {
     selected = name;
-    document.querySelectorAll('.ip-chip').forEach((c) => c.classList.toggle('sel', c.textContent === name));
+    document.querySelectorAll('.ip-chip').forEach((c) => c.classList.toggle('sel', c.dataset.name === name));
     drawDetail();
     if (window.matchMedia('(max-width: 900px)').matches) document.getElementById('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -311,6 +387,7 @@ window.d3 = {
     });
     fwrap.appendChild(el('div', 'fn', '비대면·일반 등급 기준이며 우대 등급은 면제될 수 있어요. 청약 전 증권사 공고를 확인하세요.'));
 
+    if (r.demand_start) row('수요예측', 3, fmtD(r.demand_start), 'demand_start', '~ ' + fmtD(r.demand_end));
     row('청약 시작', 0, fmtD(r.sub_start), 'sub_start');
     row('청약 마감', 0, fmtD(r.sub_end), 'sub_end', dday(r.sub_end));
     row('환불일', 1, fmtD(r.refund), 'refund', dday(r.refund));
@@ -318,7 +395,25 @@ window.d3 = {
     else row('상장일', 2, '확정 전', null);
     if (r.note) row('메모', null, r.note, 'note');
 
-    box.append(name, tags, hero, dl, fwrap);
+    // 확약 해제(매도가능)일
+    const lkWrap = el('div', 'lk');
+    lkWrap.appendChild(el('div', 'fh', '확약 해제(매도가능)일'));
+    const lk = dash.data('lockup');
+    if (!r.listing) lkWrap.appendChild(el('div', 'fu', '상장일이 정해지면 계산돼요.'));
+    else if (lk.status === 'ok') {
+      const ldl = el('dl');
+      lk.data.filter((x) => x.name === r.name).forEach((x) => {
+        const dt = el('dt'); const d = el('span', 'ip-dot'); d.style.background = C[LOCK_C[x.period]];
+        dt.append(d, document.createTextNode(x.period));
+        const dd = el('dd'); const v = el('span', null, fmtD(x.date));
+        v.dataset.source = 'lockup'; v.dataset.field = 'date'; v.dataset.where = 'key=' + encodeURIComponent(x.key);
+        dd.append(v, el('span', 'dd-s', ' · ' + dday(x.date)));
+        ldl.append(dt, dd);
+      });
+      lkWrap.appendChild(ldl);
+    }
+
+    box.append(name, tags, hero, dl, lkWrap, fwrap);
   }
 
   function fail(el) { el.replaceChildren(); const f = document.createElement('div'); f.className = 'ip-fail'; f.textContent = 'Failed to load'; el.appendChild(f); }
@@ -362,10 +457,21 @@ window.d3 = {
     // 이벤트: 청약은 시작~마감을 하나의 기간으로, 환불·상장은 하루짜리
     const events = [];
     rows.forEach((r) => {
-      if (r.sub_start && r.sub_end) events.push({ t: 0, name: r.name, s: parse(r.sub_start), e: parse(r.sub_end) });
-      if (r.refund) events.push({ t: 1, name: r.name, s: parse(r.refund), e: parse(r.refund) });
-      if (r.listing) events.push({ t: 2, name: r.name, s: parse(r.listing), e: parse(r.listing) });
+      if (mode === 'sub') {
+        if (r.sub_start && r.sub_end) events.push({ t: 0, c: 0, name: r.name, s: parse(r.sub_start), e: parse(r.sub_end) });
+        if (r.refund) events.push({ t: 1, c: 1, name: r.name, s: parse(r.refund), e: parse(r.refund) });
+        if (r.listing) events.push({ t: 2, c: 2, name: r.name, s: parse(r.listing), e: parse(r.listing) });
+      } else if (mode === 'demand') {
+        if (r.demand_start && r.demand_end) events.push({ t: 3, c: 3, name: r.name, s: parse(r.demand_start), e: parse(r.demand_end) });
+      }
     });
+    if (mode === 'lockup') {
+      const lk = dash.data('lockup');
+      (lk.status === 'ok' ? lk.data : []).forEach((x) => {
+        const c = LOCK_C[x.period];
+        events.push({ t: c, c, name: x.name, label: `${x.name} ${x.period}`, s: parse(x.date), e: parse(x.date) });
+      });
+    }
 
     for (let w = 0; w < weeks; w++) {
       const ws = new Date(start.getTime() + w * 7 * DAY);
@@ -403,13 +509,15 @@ window.d3 = {
       segs.forEach((sg) => {
         const c = document.createElement('button'); c.type = 'button';
         c.className = 'ip-chip' + (sg.contL ? ' cont-l' : '') + (sg.contR ? ' cont-r' : '') + (sg.name === selected ? ' sel' : '');
+        if (sg.t >= 4) { c.dataset.source = 'lockup'; c.dataset.field = 'date'; c.dataset.where = 'key=' + encodeURIComponent(sg.name + '|' + sg.label.slice(sg.name.length + 1)); }
         c.style.gridColumn = `${sg.c0 + 1} / ${sg.c1 + 2}`;
         c.style.gridRow = String(sg.lane + 2);
-        c.style.borderLeftColor = C[sg.t];
-        c.style.background = `color-mix(in srgb, ${C[sg.t]} 20%, var(--color-panel))`;
-        c.textContent = sg.name;
-        const label = ['청약', '환불', '상장'][sg.t];
-        c.title = sg.t === 0 ? `${label} ${fmtD(key(sg.s))}–${fmtD(key(sg.e))} · ${sg.name}` : `${label} ${fmtD(key(sg.s))} · ${sg.name}`;
+        c.dataset.name = sg.name;
+        c.style.borderLeftColor = C[sg.c];
+        c.style.background = `color-mix(in srgb, ${C[sg.c]} 20%, var(--color-panel))`;
+        c.textContent = sg.label || sg.name;
+        const label = { 0: '청약', 1: '환불', 2: '상장', 3: '수요예측' }[sg.t] || '확약 해제';
+        c.title = (sg.t === 0 || sg.t === 3) ? `${label} ${fmtD(key(sg.s))}–${fmtD(key(sg.e))} · ${sg.name}` : `${label} ${fmtD(key(sg.s))} · ${sg.label || sg.name}`;
         c.addEventListener('click', () => select(sg.name));
         week.appendChild(c);
       });
@@ -449,7 +557,7 @@ window.d3 = {
       tr.addEventListener('click', () => { select(r.name); const d = parse(r.sub_start); view = { y: d.getUTCFullYear(), m: d.getUTCMonth() }; drawCal(); });
       const cell = (v, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = v; return td; };
       tr.append(
-        cell(r.name), cell(r.market, 'opt'), cell(fmtD(r.sub_start)), cell(fmtD(r.sub_end)), cell(fmtD(r.refund)), cell(fmtD(r.listing)),
+        cell(r.name), cell(r.market, 'opt'), cell(fmtD(r.demand_start), 'opt'), cell(fmtD(r.sub_start)), cell(fmtD(r.sub_end)), cell(fmtD(r.refund)), cell(fmtD(r.listing)),
         cell(won(r.price_final), 'num'), cell(won(r.band_low), 'num opt'), cell(won(r.band_high), 'num opt'), cell(r.underwriter, 'opt'), cell(r.note, 'opt')
       );
       return tr;

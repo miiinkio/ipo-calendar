@@ -30,7 +30,7 @@ HEAD = """<!doctype html>
   --font-anthropic-serif: 'Noto Serif KR', Georgia, serif;
   --color-bg: #f6f5f1; --color-panel: #ffffff; --color-fg: #1f1e1b; --color-fg-muted: #6b6860;
   --color-border-line: #e3e0d8; --color-ok: #1f7a4d; --color-warn: #a86a00; --color-bad: #c2352c;
-  --c0: #2f6fdf; --c1: #d9822b; --c2: #2e9d6a;
+  --c0: #2f6fdf; --c1: #d9822b; --c2: #2e9d6a; --c3: #8a5cd6; --c4: #e05d8c; --c5: #c98a1b; --c6: #2a9db5; --c7: #6d7a3a;
   --cds-font-size-caption: 12px; --cds-font-size-body: 14px; --cds-font-size-heading: 16px; --cds-font-size-title: 26px;
   --cds-font-weight-medium: 600;
   --cds-gap-xs: 4px; --cds-gap-sm: 8px; --cds-gap-md: 12px; --cds-gap-lg: 20px; --cds-gap-xl: 32px;
@@ -42,7 +42,7 @@ HEAD = """<!doctype html>
   :root {
     --color-bg: #161614; --color-panel: #201f1c; --color-fg: #ecebe6; --color-fg-muted: #a3a097;
     --color-border-line: #34322d; --color-ok: #5cc794; --color-warn: #e0a64a; --color-bad: #ef6b61;
-    --c0: #6c9cf0; --c1: #e9a25a; --c2: #5cc794;
+    --c0: #6c9cf0; --c1: #e9a25a; --c2: #5cc794; --c3: #b08cf0; --c4: #f08ab0; --c5: #e6b452; --c6: #5fc3d8; --c7: #a8b56a;
     color-scheme: dark;
   }
 }
@@ -75,11 +75,23 @@ window.dash = (() => {
   });
   let w = window.innerWidth;
   window.addEventListener('resize', () => { if (window.innerWidth !== w) { w = window.innerWidth; fire(); } });
+  const calcs = {};
+  const data = (id) => {
+    if (calcs[id]) {
+      const ins = calcs[id].inputs.map(data);
+      if (ins.some((x) => x.status === 'error')) return { status: 'error', data: [] };
+      if (ins.some((x) => x.status !== 'ok')) return { status: 'loading', data: [] };
+      try { return { status: 'ok', data: calcs[id].fn(...ins.map((x) => x.data)) }; }
+      catch (e) { console.error(e); return { status: 'error', data: [] }; }
+    }
+    return state[id] || { status: 'missing', data: [] };
+  };
   return {
-    data: (id) => state[id] || { status: 'missing', data: [] },
+    data,
     onData: (fn) => { subs.push(fn); try { fn(); } catch (e) { console.error(e); } },
-    colors: ['var(--c0)', 'var(--c1)', 'var(--c2)', '#8a63d2', '#c2547a', '#3a9fb0', '#9a8a3a', '#6b6860'],
-    calc: () => {}, loader: () => {}, setLink: () => {}, refresh: () => {},
+    colors: ['var(--c0)', 'var(--c1)', 'var(--c2)', 'var(--c3)', 'var(--c4)', 'var(--c5)', 'var(--c6)', 'var(--c7)'],
+    calc: (id, spec) => { calcs[id] = spec; },
+    loader: () => {}, setLink: (h) => { try { history.replaceState(null, '', '#' + h); } catch (e) {} }, refresh: () => {},
     params: () => ({}), setParams: () => {}, resetParams: () => {},
   };
 })();
