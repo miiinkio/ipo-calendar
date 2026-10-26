@@ -196,7 +196,7 @@
   let mode = 'sub';
   const MODES = {
     sub: [[0, '청약'], [1, '환불'], [2, '상장']],
-    demand: [[3, '수요예측']],
+    demand: [],
     lockup: [[4, '15일'], [5, '1개월'], [6, '3개월'], [7, '6개월']],
   };
   const LOCK_C = { '15일': 4, '1개월': 5, '3개월': 6, '6개월': 7 };
@@ -208,7 +208,7 @@
       d.className = 'ip-dot'; d.style.background = C[c]; s.append(d, document.createTextNode(label)); lg.appendChild(s);
     });
     const hint = document.createElement('span');
-    hint.textContent = mode === 'lockup' ? '· 상장일 기준, 주말이면 다음 거래일 (공휴일 미반영)' : mode === 'demand' ? '· 기관 대상 수요예측 기간' : '· 종목을 누르면 상세가 보여요';
+    hint.textContent = mode === 'lockup' ? '· 상장일 기준, 주말이면 다음 거래일 (공휴일 미반영)' : mode === 'demand' ? '기관 수요예측 기간 · 종목마다 색이 다르고, 막대 끝 날짜가 수요예측 마감일이에요' : '· 종목을 누르면 상세가 보여요';
     lg.appendChild(hint);
   }
   document.querySelectorAll('.ip-tabs button').forEach((b) => b.addEventListener('click', () => {
@@ -366,10 +366,17 @@
         if (r.sub_start && r.sub_end) events.push({ t: 0, c: 0, name: r.name, s: parse(r.sub_start), e: parse(r.sub_end) });
         if (r.refund) events.push({ t: 1, c: 1, name: r.name, s: parse(r.refund), e: parse(r.refund) });
         if (r.listing) events.push({ t: 2, c: 2, name: r.name, s: parse(r.listing), e: parse(r.listing) });
-      } else if (mode === 'demand') {
-        if (r.demand_start && r.demand_end) events.push({ t: 3, c: 3, name: r.name, s: parse(r.demand_start), e: parse(r.demand_end) });
       }
     });
+    if (mode === 'demand') {
+      // 종목마다 다른 색, 막대에 마감일 표기
+      rows.filter((r) => r.demand_start && r.demand_end)
+        .sort((a, b) => d3.ascending(a.demand_start, b.demand_start) || d3.ascending(a.name, b.name))
+        .forEach((r, i) => {
+          const end = parse(r.demand_end);
+          events.push({ t: 3, c: i % 8, name: r.name, label: `${r.name} ~${end.getUTCMonth() + 1}/${end.getUTCDate()}`, s: parse(r.demand_start), e: end });
+        });
+    }
     if (mode === 'lockup') {
       const lk = dash.data('lockup');
       (lk.status === 'ok' ? lk.data : []).forEach((x) => {
@@ -419,7 +426,7 @@
         c.style.gridRow = String(sg.lane + 2);
         c.dataset.name = sg.name;
         c.style.borderLeftColor = C[sg.c];
-        c.style.background = `color-mix(in srgb, ${C[sg.c]} 20%, var(--color-panel))`;
+        c.style.background = `color-mix(in srgb, ${C[sg.c]} ${sg.t === 3 ? 30 : 20}%, var(--color-panel))`;
         c.textContent = sg.label || sg.name;
         const label = { 0: '청약', 1: '환불', 2: '상장', 3: '수요예측' }[sg.t] || '확약 해제';
         c.title = (sg.t === 0 || sg.t === 3) ? `${label} ${fmtD(key(sg.s))}–${fmtD(key(sg.e))} · ${sg.name}` : `${label} ${fmtD(key(sg.s))} · ${sg.label || sg.name}`;
