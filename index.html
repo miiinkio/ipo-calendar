@@ -155,7 +155,8 @@ window.d3 = {
 .ip-detail .fu { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
 .ip-detail .fu.ok { color: var(--color-ok); }
 .ip-detail .fn { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
-.ip-detail .ifee { font-weight: var(--cds-font-weight-medium); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border-line); color: var(--color-fg-muted); }
+.ip-detail dd.uw { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.ip-detail .ifee { font-size: var(--cds-font-size-caption); white-space: nowrap;  font-weight: var(--cds-font-weight-medium); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border-line); color: var(--color-fg-muted); }
 .ip-detail .ifee.yes { color: var(--color-bad); border-color: currentColor; }
 .ip-detail .ifee.no { color: var(--color-ok); border-color: currentColor; }
 .ip-detail .dd-s { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
@@ -202,7 +203,7 @@ window.d3 = {
 
     <aside class="ip-card ip-detail" id="detail" aria-live="polite">
       <h2>종목 상세</h2>
-      <div class="ip-dbody dash-skeleton" data-source="fees">—</div>
+      <div class="ip-dbody dash-skeleton">—</div>
     </aside>
   </div>
 
@@ -366,37 +367,14 @@ window.d3 = {
       if (suffix) dd.appendChild(el('span', 'dd-s', ' · ' + suffix));
       dl.append(dt, dd);
     };
-    // 주관사별 청약 수수료
-    const fees = dash.data('fees');
-    const fwrap = el('div', 'fees');
-    fwrap.appendChild(el('div', 'fh', '주관사 · 온라인 청약 수수료'));
-    String(r.underwriter || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((b) => {
-      const line = el('div', 'fl');
-      line.appendChild(el('span', 'fb', b));
-      const right = el('span', 'fr');
-      if (fees.status === 'ok') {
-        const f = fees.data.find((x) => x.broker === b);
-        if (f) {
-          const amt = el('span', 'fa', +f.online_fee === 0 ? '무료' : won(f.online_fee));
-          amt.dataset.source = 'fees'; amt.dataset.field = 'online_fee'; amt.dataset.where = 'broker=' + encodeURIComponent(b);
-          const un = el('span', 'fu' + (f.unallocated === '면제' ? ' ok' : ''), f.unallocated === '수수료 없음' ? '' : `미배정 시 ${f.unallocated}`);
-          if (un.textContent) { un.dataset.source = 'fees'; un.dataset.field = 'unallocated'; un.dataset.where = 'broker=' + encodeURIComponent(b); }
-          right.append(amt, un);
-          if (f.note) { const n = el('span', 'fu', f.note); n.dataset.source = 'fees'; n.dataset.field = 'note'; n.dataset.where = 'broker=' + encodeURIComponent(b); right.appendChild(n); }
-        } else right.appendChild(el('span', 'fu', '정보 없음'));
-      } else if (fees.status === 'error') right.appendChild(el('span', 'fu', '불러오지 못함'));
-      line.appendChild(right);
-      fwrap.appendChild(line);
-    });
-    fwrap.appendChild(el('div', 'fn', '비대면·일반 등급 기준이며 우대 등급은 면제될 수 있어요. 청약 전 증권사 공고를 확인하세요.'));
-
     {
-      // 기관 청약수수료 있음/없음
-      const dt = el('dt', null, '기관 청약수수료');
-      const dd = el('dd');
-      const v = el('span', 'ifee' + (r.inst_fee === '있음' ? ' yes' : r.inst_fee === '없음' ? ' no' : ''), r.inst_fee || '확인 전');
-      if (r.inst_fee) mark(v, 'inst_fee', r.name);
-      dd.appendChild(v);
+      // 주관사 + 기관 청약수수료 있음/없음
+      const dt = el('dt', null, '주관사');
+      const dd = el('dd', 'uw');
+      dd.appendChild(mark(el('span', 'uwn', r.underwriter || ''), 'underwriter', r.name));
+      const fee = el('span', 'ifee' + (r.inst_fee === '있음' ? ' yes' : r.inst_fee === '없음' ? ' no' : ''), '기관 청약수수료 ' + (r.inst_fee || '확인 전'));
+      if (r.inst_fee) { const v = mark(el('span', null, r.inst_fee), 'inst_fee', r.name); fee.textContent = '기관 청약수수료 '; fee.appendChild(v); }
+      dd.appendChild(fee);
       dl.append(dt, dd);
     }
     if (r.demand_start) row('수요예측', 3, fmtD(r.demand_start), 'demand_start', '~ ' + fmtD(r.demand_end));
@@ -425,7 +403,7 @@ window.d3 = {
       lkWrap.appendChild(ldl);
     }
 
-    box.append(name, tags, hero, dl, lkWrap, fwrap);
+    box.append(name, tags, hero, dl, lkWrap);
   }
 
   function fail(el) { el.replaceChildren(); const f = document.createElement('div'); f.className = 'ip-fail'; f.textContent = 'Failed to load'; el.appendChild(f); }
