@@ -155,6 +155,9 @@ window.d3 = {
 .ip-detail .fu { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
 .ip-detail .fu.ok { color: var(--color-ok); }
 .ip-detail .fn { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail .ifee { font-weight: var(--cds-font-weight-medium); padding: 1px 8px; border-radius: 999px; border: 1px solid var(--color-border-line); color: var(--color-fg-muted); }
+.ip-detail .ifee.yes { color: var(--color-bad); border-color: currentColor; }
+.ip-detail .ifee.no { color: var(--color-ok); border-color: currentColor; }
 .ip-detail .dd-s { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
 .ip-detail .empty { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); margin-top: var(--cds-gap-lg); }
 .ip-table tbody tr { cursor: pointer; }
@@ -387,6 +390,15 @@ window.d3 = {
     });
     fwrap.appendChild(el('div', 'fn', '비대면·일반 등급 기준이며 우대 등급은 면제될 수 있어요. 청약 전 증권사 공고를 확인하세요.'));
 
+    {
+      // 기관 청약수수료 있음/없음
+      const dt = el('dt', null, '기관 청약수수료');
+      const dd = el('dd');
+      const v = el('span', 'ifee' + (r.inst_fee === '있음' ? ' yes' : r.inst_fee === '없음' ? ' no' : ''), r.inst_fee || '확인 전');
+      if (r.inst_fee) mark(v, 'inst_fee', r.name);
+      dd.appendChild(v);
+      dl.append(dt, dd);
+    }
     if (r.demand_start) row('수요예측', 3, fmtD(r.demand_start), 'demand_start', '~ ' + fmtD(r.demand_end));
     row('청약 시작', 0, fmtD(r.sub_start), 'sub_start');
     row('청약 마감', 0, fmtD(r.sub_end), 'sub_end', dday(r.sub_end));
