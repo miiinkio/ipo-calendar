@@ -1,0 +1,17 @@
+[
+{"broker":"키움증권","online_fee":0,"unallocated":"수수료 없음","note":""},
+{"broker":"미래에셋증권","online_fee":2000,"unallocated":"확인 필요","note":"출처마다 미배정 면제 여부가 다름"},
+{"broker":"한국투자증권","online_fee":2000,"unallocated":"확인 필요","note":"출처마다 미배정 면제 여부가 다름"},
+{"broker":"KB증권","online_fee":1500,"unallocated":"확인 필요","note":"2,000원으로 안내한 출처도 있음"},
+{"broker":"신한투자증권","online_fee":2000,"unallocated":"면제","note":""},
+{"broker":"삼성증권","online_fee":2000,"unallocated":"면제","note":""},
+{"broker":"NH투자증권","online_fee":2000,"unallocated":"확인 필요","note":"출처마다 미배정 면제 여부가 다름"},
+{"broker":"대신증권","online_fee":2000,"unallocated":"면제","note":"영업점 개설 계좌는 3,000원"},
+{"broker":"하나증권","online_fee":2000,"unallocated":"면제","note":""},
+{"broker":"IBK투자증권","online_fee":2000,"unallocated":"면제","note":""},
+{"broker":"신영증권","online_fee":2000,"unallocated":"확인 필요","note":""},
+{"broker":"유진투자증권","online_fee":2000,"unallocated":"면제","note":""},
+{"broker":"SK증권","online_fee":2000,"unallocated":"확인 필요","note":""},
+{"broker":"아이엠증권","online_fee":2000,"unallocated":"면제","note":"구 하이투자증권"},
+{"broker":"BNK투자증권","online_fee":1000,"unallocated":"확인 필요","note":""}
+]

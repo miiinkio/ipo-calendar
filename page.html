@@ -1,0 +1,406 @@
+<style>
+.ip { font-family: var(--font-anthropic-sans); color: var(--color-fg); display: flex; flex-direction: column; gap: var(--cds-gap-lg); }
+.ip-head h1 { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: 0 0 var(--cds-gap-xs); }
+.ip-take { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); margin: 0; min-height: 1.4em; }
+.ip-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: var(--cds-gap-md); }
+.ip-card { background: var(--color-panel); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-lg); min-width: 0; }
+.ip-card h2 { font-size: var(--cds-font-size-heading); font-weight: var(--cds-font-weight-medium); margin: 0; }
+.ip-note { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); margin: var(--cds-gap-xs) 0 var(--cds-gap-md); }
+.ip-tile { display: flex; flex-direction: column; gap: var(--cds-gap-xs); min-height: 8.5rem; }
+.ip-tile .lab { display: flex; align-items: center; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-dot { width: .5rem; height: .5rem; border-radius: 50%; flex: none; }
+.ip-tile .big { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; }
+.ip-tile .dday { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-tile .names { display: flex; flex-wrap: wrap; gap: var(--cds-gap-xs); font-size: var(--cds-font-size-body); }
+.ip-tile .names span:not(:last-child)::after { content: ","; }
+.ip-calhead { display: flex; align-items: center; justify-content: space-between; gap: var(--cds-gap-sm); flex-wrap: wrap; }
+.ip-nav { display: flex; align-items: center; gap: var(--cds-gap-xs); }
+.ip-nav button, .ip-tools button { font: inherit; font-size: var(--cds-font-size-caption); background: transparent; color: var(--color-fg); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); padding: var(--cds-pad-xs) var(--cds-pad-sm); cursor: pointer; }
+.ip-nav .m { font-weight: var(--cds-font-weight-medium); min-width: 6.5rem; text-align: center; font-variant-numeric: tabular-nums; }
+.ip-legend { display: flex; gap: var(--cds-gap-md); flex-wrap: wrap; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); margin: var(--cds-gap-sm) 0; }
+.ip-legend span { display: inline-flex; align-items: center; gap: var(--cds-gap-xs); }
+.ip-cal { display: flex; flex-direction: column; gap: 2px; min-height: 22rem; }
+.ip-cal .wdrow, .ip-cal .week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: 2px; }
+.ip-cal .wd { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); text-align: center; padding-bottom: var(--cds-pad-xs); }
+.ip-cal .week { row-gap: 2px; min-height: 6.4rem; }
+.ip-cal .day { border: 1px solid var(--color-border-line); border-radius: 4px; padding: 2px 4px; min-width: 0; }
+.ip-cal .day.out { opacity: .35; }
+.ip-cal .day.today { border-color: var(--color-fg); }
+.ip-cal .num { grid-row: 1; align-self: start; padding: 2px 5px; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; pointer-events: none; z-index: 1; }
+.ip-cal .num.out { opacity: .35; }
+.ip-cal .num.today { color: var(--color-fg); font-weight: var(--cds-font-weight-medium); }
+.ip-chip { font: inherit; font-size: 11px; line-height: 1.25rem; height: 1.25rem; padding: 0 6px; margin: 0 3px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--color-fg); border: 0; border-left: 3px solid; text-align: left; cursor: pointer; min-width: 0; z-index: 1; }
+.ip-chip.cont-l { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; border-left-width: 0; }
+.ip-chip.cont-r { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
+.ip-chip:hover { filter: brightness(.95); }
+.ip-chip.sel { outline: 2px solid var(--color-fg); outline-offset: -1px; }
+.ip-main { display: grid; grid-template-columns: minmax(0, 1fr) 19rem; gap: var(--cds-gap-md); align-items: start; }
+@media (max-width: 900px) { .ip-main { grid-template-columns: minmax(0, 1fr); } }
+.ip-detail { position: sticky; top: var(--cds-gap-md); min-height: 22rem; }
+.ip-detail .dname { font-family: var(--font-anthropic-serif); font-weight: 400; font-size: var(--cds-font-size-title); margin: var(--cds-gap-xs) 0; overflow-wrap: anywhere; }
+.ip-detail .tags { display: flex; gap: var(--cds-gap-xs); flex-wrap: wrap; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail .tags span { border: 1px solid var(--color-border-line); border-radius: 999px; padding: 0 var(--cds-pad-sm); }
+.ip-detail .hero { margin: var(--cds-gap-md) 0; padding: var(--cds-pad-md); border-radius: var(--cds-radius); background: var(--color-bg); border: 1px solid var(--color-border-line); }
+.ip-detail .hero .k { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail .hero .v { font-family: var(--font-anthropic-serif); font-size: var(--cds-font-size-title); font-variant-numeric: tabular-nums; }
+.ip-detail .hero .s { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail dl { display: grid; grid-template-columns: auto 1fr; gap: var(--cds-gap-xs) var(--cds-gap-md); margin: 0; font-size: var(--cds-font-size-body); font-variant-numeric: tabular-nums; }
+.ip-detail dt { color: var(--color-fg-muted); display: flex; align-items: center; gap: var(--cds-gap-xs); }
+.ip-detail dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.ip-detail .fees { margin-top: var(--cds-gap-md); padding-top: var(--cds-gap-md); border-top: 1px solid var(--color-border-line); display: flex; flex-direction: column; gap: var(--cds-gap-sm); }
+.ip-detail .fh { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail .fl { display: flex; justify-content: space-between; gap: var(--cds-gap-sm); align-items: baseline; }
+.ip-detail .fb { font-weight: var(--cds-font-weight-medium); white-space: nowrap; }
+.ip-detail .fr { display: flex; flex-direction: column; align-items: flex-end; text-align: right; font-variant-numeric: tabular-nums; }
+.ip-detail .fu { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail .fu.ok { color: var(--color-ok); }
+.ip-detail .fn { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail .dd-s { color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); }
+.ip-detail .empty { color: var(--color-fg-muted); font-size: var(--cds-font-size-body); margin-top: var(--cds-gap-lg); }
+.ip-table tbody tr { cursor: pointer; }
+.ip-table tbody tr:hover td { background: var(--color-bg); }
+.ip-tools { display: flex; gap: var(--cds-gap-sm); flex-wrap: wrap; align-items: center; margin-bottom: var(--cds-gap-sm); }
+.ip-tools input[type=search] { font: inherit; font-size: var(--cds-font-size-caption); padding: var(--cds-pad-xs) var(--cds-pad-sm); border: 1px solid var(--color-border-line); border-radius: var(--cds-radius); background: var(--color-bg); color: var(--color-fg); min-width: 0; flex: 1 1 10rem; }
+.ip-tools label { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); display: inline-flex; gap: var(--cds-gap-xs); align-items: center; }
+.ip-tablebox { max-height: 34rem; overflow: auto; }
+.ip-table { width: 100%; border-collapse: collapse; font-size: var(--cds-font-size-caption); font-variant-numeric: tabular-nums; }
+.ip-table th { position: sticky; top: 0; background: var(--color-panel); text-align: left; font-weight: var(--cds-font-weight-medium); color: var(--color-fg-muted); border-bottom: 1px solid var(--color-border-line); padding: var(--cds-pad-xs) var(--cds-pad-sm); white-space: nowrap; cursor: pointer; }
+.ip-table td { padding: var(--cds-pad-xs) var(--cds-pad-sm); border-bottom: 1px solid var(--color-border-line); white-space: nowrap; }
+.ip-table td.num, .ip-table th.num { text-align: right; }
+.ip-table tr.past td { color: var(--color-fg-muted); }
+.ip-table td:first-child { font-weight: var(--cds-font-weight-medium); }
+@media (max-width: 640px) { .ip-table .opt { display: none; } .ip-cal .week { min-height: 4.4rem; } .ip-chip { font-size: 10px; padding: 0 3px; margin: 0 1px; } }
+[data-dash-source-state=empty] { color: transparent; }
+[data-dash-source-state=refreshing] { opacity: .5; transition: opacity var(--cds-dur-slow); }
+.ip-fail { display: flex; align-items: center; justify-content: center; gap: var(--cds-gap-xs); color: var(--color-fg-muted); font-size: var(--cds-font-size-caption); min-height: inherit; }
+.ip-fail::before { content: ""; width: .375rem; height: .375rem; border-radius: 50%; background: var(--color-bad); }
+</style>
+
+<div class="ip">
+  <header class="ip-head" id="top">
+    <h1>공모주 일정 캘린더</h1>
+    <p class="ip-take dash-skeleton" data-source="ipo">—</p>
+  </header>
+
+  <div class="ip-main">
+    <section class="ip-card" id="calendar">
+      <div class="ip-calhead">
+        <h2>월간 캘린더</h2>
+        <div class="ip-nav"><button class="ip-prev" aria-label="이전 달">‹</button><span class="m ip-month"></span><button class="ip-next" aria-label="다음 달">›</button><button class="ip-today">오늘</button></div>
+      </div>
+      <div class="ip-legend"><span><span class="ip-dot" data-c="0"></span>청약</span><span><span class="ip-dot" data-c="1"></span>환불</span><span><span class="ip-dot" data-c="2"></span>상장</span><span>· 종목을 누르면 상세가 보여요</span></div>
+      <div class="ip-cal dash-skeleton" data-source="ipo"></div>
+    </section>
+
+    <aside class="ip-card ip-detail" id="detail" aria-live="polite">
+      <h2>종목 상세</h2>
+      <div class="ip-dbody dash-skeleton" data-source="fees">—</div>
+    </aside>
+  </div>
+
+  <section class="ip-tiles" id="next">
+    <div class="ip-card ip-tile" id="tile-sub"><div class="lab"><span class="ip-dot" data-c="0"></span>다음 청약 마감</div><div class="body dash-skeleton">—</div></div>
+    <div class="ip-card ip-tile" id="tile-refund"><div class="lab"><span class="ip-dot" data-c="1"></span>다음 환불일</div><div class="body dash-skeleton">—</div></div>
+    <div class="ip-card ip-tile" id="tile-list"><div class="lab"><span class="ip-dot" data-c="2"></span>다음 상장일</div><div class="body dash-skeleton">—</div></div>
+  </section>
+
+  <section class="ip-card" id="list">
+    <h2>전체 종목</h2>
+    <p class="ip-note">상장일이 비어 있으면 아직 확정 공시 전입니다. 헤더를 누르면 정렬됩니다.</p>
+    <div class="ip-tools">
+      <input type="search" class="ip-q" placeholder="종목·주관사 검색" aria-label="검색">
+      <label><input type="checkbox" class="ip-past"> 지난 종목 포함</label>
+      <label><input type="checkbox" class="ip-spac" checked> 스팩 포함</label>
+    </div>
+    <div class="ip-tablebox">
+      <table class="ip-table" data-source="ipo" data-row-key="name">
+        <thead><tr>
+          <th data-field="name" data-k="name">종목</th>
+          <th data-field="market" data-k="market" class="opt">시장</th>
+          <th data-field="sub_start" data-k="sub_start">청약 시작</th>
+          <th data-field="sub_end" data-k="sub_end">청약 마감</th>
+          <th data-field="refund" data-k="refund">환불일</th>
+          <th data-field="listing" data-k="listing">상장일</th>
+          <th data-field="price_final" data-k="price_final" class="num">확정 공모가</th>
+          <th data-field="band_low" data-k="band_low" class="num opt">밴드 하단</th>
+          <th data-field="band_high" data-k="band_high" class="num opt">밴드 상단</th>
+          <th data-field="underwriter" data-k="underwriter" class="opt">주관사</th>
+          <th data-field="note" data-k="note" class="opt">메모</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  const C = dash.colors;
+  document.querySelectorAll('.ip-dot[data-c]').forEach((d) => { d.style.background = C[+d.dataset.c]; });
+  const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const WD = ['일', '월', '화', '수', '목', '금', '토'];
+  const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+  const fmtD = (s) => { if (!s) return ''; const d = parse(s); return `${d.getUTCMonth() + 1}/${d.getUTCDate()} (${WD[d.getUTCDay()]})`; };
+  const won = (n) => (n == null || n === '' ? '' : d3.format(',')(+n) + '원');
+  const dday = (s) => { const n = Math.round((parse(s) - parse(todayStr)) / 864e5); return n === 0 ? '오늘' : n > 0 ? `D-${n}` : `${-n}일 전`; };
+
+  let view = (() => { const t = parse(todayStr); return { y: t.getUTCFullYear(), m: t.getUTCMonth() }; })();
+  const monthEl = document.querySelector('.ip-month');
+  const shift = (k) => { const d = new Date(Date.UTC(view.y, view.m + k, 1)); view = { y: d.getUTCFullYear(), m: d.getUTCMonth() }; drawCal(); };
+  document.querySelector('.ip-prev').addEventListener('click', () => shift(-1));
+  document.querySelector('.ip-next').addEventListener('click', () => shift(1));
+  document.querySelector('.ip-today').addEventListener('click', () => { const t = parse(todayStr); view = { y: t.getUTCFullYear(), m: t.getUTCMonth() }; drawCal(); });
+
+  let rows = [];
+  let selected = null;
+  const sortState = { k: 'sub_start', dir: 1 };
+
+  function select(name) {
+    selected = name;
+    document.querySelectorAll('.ip-chip').forEach((c) => c.classList.toggle('sel', c.textContent === name));
+    drawDetail();
+    if (window.matchMedia('(max-width: 900px)').matches) document.getElementById('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function mark(el, field, name) { el.dataset.source = 'ipo'; el.dataset.field = field; el.dataset.where = 'name=' + encodeURIComponent(name); return el; }
+
+  function drawDetail() {
+    const box = document.querySelector('.ip-dbody');
+    const st = dash.data('ipo').status;
+    if (st === 'error' || st === 'connect') { box.classList.remove('dash-skeleton'); fail(box); return; }
+    if (st !== 'ok') return;
+    box.classList.remove('dash-skeleton');
+    box.replaceChildren();
+    const r = rows.find((x) => x.name === selected);
+    if (!r) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = '캘린더나 표에서 종목을 눌러 보세요.'; box.appendChild(p); return; }
+    const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+    const name = mark(el('div', 'dname', r.name), 'name', r.name);
+    const tags = el('div', 'tags');
+    tags.append(mark(el('span', null, r.market), 'market', r.name), mark(el('span', null, r.type), 'type', r.name));
+
+    const hero = el('div', 'hero');
+    if (r.price_final != null) {
+      hero.append(el('div', 'k', '확정 공모가'), mark(el('div', 'v', won(r.price_final)), 'price_final', r.name));
+      const s = el('div', 's');
+      if (r.band_low != null && r.band_high != null && +r.band_low !== +r.band_high) {
+        const pos = +r.price_final >= +r.band_high ? '밴드 상단' : +r.price_final <= +r.band_low ? '밴드 하단' : '밴드 내';
+        s.textContent = `${pos} · 희망 ${won(r.band_low)}–${won(r.band_high)}`;
+      } else s.textContent = '고정 공모가';
+      hero.appendChild(s);
+    } else {
+      hero.append(el('div', 'k', '확정 공모가'), el('div', 'v', '미확정'), el('div', 's', `희망 밴드 ${won(r.band_low)}–${won(r.band_high)} · 수요예측 후 확정`));
+    }
+
+    const dl = el('dl');
+    const row = (label, color, value, field, suffix) => {
+      const dt = el('dt');
+      if (color != null) { const d = el('span', 'ip-dot'); d.style.background = C[color]; dt.appendChild(d); }
+      dt.appendChild(document.createTextNode(label));
+      const dd = el('dd');
+      const v = el('span', null, value);
+      if (field) mark(v, field, r.name);
+      dd.appendChild(v);
+      if (suffix) dd.appendChild(el('span', 'dd-s', ' · ' + suffix));
+      dl.append(dt, dd);
+    };
+    // 주관사별 청약 수수료
+    const fees = dash.data('fees');
+    const fwrap = el('div', 'fees');
+    fwrap.appendChild(el('div', 'fh', '주관사 · 온라인 청약 수수료'));
+    String(r.underwriter || '').split(',').map((s) => s.trim()).filter(Boolean).forEach((b) => {
+      const line = el('div', 'fl');
+      line.appendChild(el('span', 'fb', b));
+      const right = el('span', 'fr');
+      if (fees.status === 'ok') {
+        const f = fees.data.find((x) => x.broker === b);
+        if (f) {
+          const amt = el('span', 'fa', +f.online_fee === 0 ? '무료' : won(f.online_fee));
+          amt.dataset.source = 'fees'; amt.dataset.field = 'online_fee'; amt.dataset.where = 'broker=' + encodeURIComponent(b);
+          const un = el('span', 'fu' + (f.unallocated === '면제' ? ' ok' : ''), f.unallocated === '수수료 없음' ? '' : `미배정 시 ${f.unallocated}`);
+          if (un.textContent) { un.dataset.source = 'fees'; un.dataset.field = 'unallocated'; un.dataset.where = 'broker=' + encodeURIComponent(b); }
+          right.append(amt, un);
+          if (f.note) { const n = el('span', 'fu', f.note); n.dataset.source = 'fees'; n.dataset.field = 'note'; n.dataset.where = 'broker=' + encodeURIComponent(b); right.appendChild(n); }
+        } else right.appendChild(el('span', 'fu', '정보 없음'));
+      } else if (fees.status === 'error') right.appendChild(el('span', 'fu', '불러오지 못함'));
+      line.appendChild(right);
+      fwrap.appendChild(line);
+    });
+    fwrap.appendChild(el('div', 'fn', '비대면·일반 등급 기준이며 우대 등급은 면제될 수 있어요. 청약 전 증권사 공고를 확인하세요.'));
+
+    row('청약 시작', 0, fmtD(r.sub_start), 'sub_start');
+    row('청약 마감', 0, fmtD(r.sub_end), 'sub_end', dday(r.sub_end));
+    row('환불일', 1, fmtD(r.refund), 'refund', dday(r.refund));
+    if (r.listing) row('상장일', 2, fmtD(r.listing), 'listing', dday(r.listing));
+    else row('상장일', 2, '확정 전', null);
+    if (r.note) row('메모', null, r.note, 'note');
+
+    box.append(name, tags, hero, dl, fwrap);
+  }
+
+  function fail(el) { el.replaceChildren(); const f = document.createElement('div'); f.className = 'ip-fail'; f.textContent = 'Failed to load'; el.appendChild(f); }
+
+  function tile(id, field, label) {
+    const body = document.querySelector(`#${id} .body`);
+    const cand = rows.filter((r) => r[field] && r[field] >= todayStr).sort((a, b) => d3.ascending(a[field], b[field]));
+    body.classList.remove('dash-skeleton');
+    body.replaceChildren();
+    if (!cand.length) { const p = document.createElement('div'); p.className = 'dday'; p.textContent = `예정된 ${label} 없음`; body.appendChild(p); return; }
+    const date = cand[0][field];
+    const same = cand.filter((r) => r[field] === date);
+    const big = document.createElement('div'); big.className = 'big';
+    big.dataset.source = 'ipo'; big.dataset.field = field; big.dataset.where = 'name=' + encodeURIComponent(same[0].name);
+    big.textContent = fmtD(date);
+    const dd = document.createElement('div'); dd.className = 'dday'; dd.textContent = dday(date);
+    const names = document.createElement('div'); names.className = 'names';
+    same.forEach((r) => { const s = document.createElement('span'); s.dataset.source = 'ipo'; s.dataset.field = 'name'; s.dataset.where = 'name=' + encodeURIComponent(r.name); s.textContent = r.name; names.appendChild(s); });
+    body.append(big, dd, names);
+  }
+
+  function drawCal() {
+    const cal = document.querySelector('.ip-cal');
+    monthEl.textContent = `${view.y}년 ${view.m + 1}월`;
+    const st = dash.data('ipo').status;
+    if (st === 'error' || st === 'connect') { fail(cal); return; }
+    if (st !== 'ok') return;
+    cal.classList.remove('dash-skeleton');
+    cal.replaceChildren();
+    const wdrow = document.createElement('div'); wdrow.className = 'wdrow';
+    WD.forEach((w) => { const e = document.createElement('div'); e.className = 'wd'; e.textContent = w; wdrow.appendChild(e); });
+    cal.appendChild(wdrow);
+
+    const DAY = 864e5;
+    const key = (d) => d.toISOString().slice(0, 10);
+    const first = new Date(Date.UTC(view.y, view.m, 1));
+    const start = new Date(first); start.setUTCDate(1 - first.getUTCDay());
+    const last = new Date(Date.UTC(view.y, view.m + 1, 0));
+    const weeks = Math.ceil((first.getUTCDay() + last.getUTCDate()) / 7);
+
+    // 이벤트: 청약은 시작~마감을 하나의 기간으로, 환불·상장은 하루짜리
+    const events = [];
+    rows.forEach((r) => {
+      if (r.sub_start && r.sub_end) events.push({ t: 0, name: r.name, s: parse(r.sub_start), e: parse(r.sub_end) });
+      if (r.refund) events.push({ t: 1, name: r.name, s: parse(r.refund), e: parse(r.refund) });
+      if (r.listing) events.push({ t: 2, name: r.name, s: parse(r.listing), e: parse(r.listing) });
+    });
+
+    for (let w = 0; w < weeks; w++) {
+      const ws = new Date(start.getTime() + w * 7 * DAY);
+      const we = new Date(ws.getTime() + 6 * DAY);
+      // 이번 주에 걸친 구간만 잘라서 칸 위치 계산
+      const segs = events
+        .filter((ev) => ev.s <= we && ev.e >= ws)
+        .map((ev) => {
+          const s = ev.s < ws ? ws : ev.s, e = ev.e > we ? we : ev.e;
+          return { ...ev, c0: Math.round((s - ws) / DAY), c1: Math.round((e - ws) / DAY), contL: ev.s < ws, contR: ev.e > we };
+        })
+        .sort((a, b) => a.t - b.t || a.c0 - b.c0 || (b.c1 - b.c0) - (a.c1 - a.c0) || d3.ascending(a.name, b.name));
+      // 겹치지 않게 줄(lane) 배정
+      const lanes = [];
+      segs.forEach((sg) => {
+        let i = lanes.findIndex((end) => end < sg.c0);
+        if (i === -1) { i = lanes.length; lanes.push(-1); }
+        lanes[i] = sg.c1; sg.lane = i;
+      });
+      const nl = lanes.length;
+      const week = document.createElement('div'); week.className = 'week';
+      week.style.gridTemplateRows = `1.5rem ${nl ? `repeat(${nl}, 1.25rem)` : ''} minmax(0.4rem, 1fr)`;
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(ws.getTime() + i * DAY); const k = key(d);
+        const outM = d.getUTCMonth() !== view.m, isT = k === todayStr;
+        const cell = document.createElement('div');
+        cell.className = 'day' + (outM ? ' out' : '') + (isT ? ' today' : '');
+        cell.style.gridColumn = String(i + 1); cell.style.gridRow = `1 / span ${nl + 2}`;
+        const n = document.createElement('div');
+        n.className = 'num' + (outM ? ' out' : '') + (isT ? ' today' : '');
+        n.style.gridColumn = String(i + 1);
+        n.textContent = d.getUTCDate();
+        week.append(cell, n);
+      }
+      segs.forEach((sg) => {
+        const c = document.createElement('button'); c.type = 'button';
+        c.className = 'ip-chip' + (sg.contL ? ' cont-l' : '') + (sg.contR ? ' cont-r' : '') + (sg.name === selected ? ' sel' : '');
+        c.style.gridColumn = `${sg.c0 + 1} / ${sg.c1 + 2}`;
+        c.style.gridRow = String(sg.lane + 2);
+        c.style.borderLeftColor = C[sg.t];
+        c.style.background = `color-mix(in srgb, ${C[sg.t]} 20%, var(--color-panel))`;
+        c.textContent = sg.name;
+        const label = ['청약', '환불', '상장'][sg.t];
+        c.title = sg.t === 0 ? `${label} ${fmtD(key(sg.s))}–${fmtD(key(sg.e))} · ${sg.name}` : `${label} ${fmtD(key(sg.s))} · ${sg.name}`;
+        c.addEventListener('click', () => select(sg.name));
+        week.appendChild(c);
+      });
+      cal.appendChild(week);
+    }
+  }
+
+  const q = document.querySelector('.ip-q');
+  const past = document.querySelector('.ip-past');
+  const spac = document.querySelector('.ip-spac');
+  [q, past, spac].forEach((el) => el.addEventListener('input', drawTable));
+  document.querySelectorAll('.ip-table th').forEach((th) => th.addEventListener('click', () => {
+    const k = th.dataset.k; sortState.dir = sortState.k === k ? -sortState.dir : 1; sortState.k = k; drawTable();
+  }));
+
+  function isPast(r) { const end = r.listing || r.refund; return end && end < todayStr; }
+
+  function drawTable() {
+    const tb = document.querySelector('.ip-table tbody');
+    const st = dash.data('ipo').status;
+    if (st === 'error' || st === 'connect') { tb.replaceChildren(); return; }
+    if (st !== 'ok') return;
+    const term = q.value.trim();
+    const numK = ['price_final', 'band_low', 'band_high'].includes(sortState.k);
+    const list = rows
+      .filter((r) => past.checked || !isPast(r))
+      .filter((r) => spac.checked || r.type !== '스팩')
+      .filter((r) => !term || (r.name + ' ' + r.underwriter).includes(term))
+      .sort((a, b) => {
+        const x = a[sortState.k], y = b[sortState.k];
+        if (x == null || x === '') return 1; if (y == null || y === '') return -1;
+        return sortState.dir * (numK ? d3.ascending(+x, +y) : d3.ascending(String(x), String(y)));
+      });
+    document.querySelectorAll('.ip-table th').forEach((th) => th.setAttribute('aria-sort', th.dataset.k === sortState.k ? (sortState.dir > 0 ? 'ascending' : 'descending') : 'none'));
+    tb.replaceChildren(...list.map((r) => {
+      const tr = document.createElement('tr'); if (isPast(r)) tr.className = 'past';
+      tr.addEventListener('click', () => { select(r.name); const d = parse(r.sub_start); view = { y: d.getUTCFullYear(), m: d.getUTCMonth() }; drawCal(); });
+      const cell = (v, cls) => { const td = document.createElement('td'); if (cls) td.className = cls; td.textContent = v; return td; };
+      tr.append(
+        cell(r.name), cell(r.market, 'opt'), cell(fmtD(r.sub_start)), cell(fmtD(r.sub_end)), cell(fmtD(r.refund)), cell(fmtD(r.listing)),
+        cell(won(r.price_final), 'num'), cell(won(r.band_low), 'num opt'), cell(won(r.band_high), 'num opt'), cell(r.underwriter, 'opt'), cell(r.note, 'opt')
+      );
+      return tr;
+    }));
+  }
+
+  function takeaway() {
+    const el = document.querySelector('.ip-take');
+    const st = dash.data('ipo').status;
+    if (st !== 'ok') { if (st === 'error' || st === 'connect') { el.classList.remove('dash-skeleton'); el.textContent = ''; } return; }
+    el.classList.remove('dash-skeleton');
+    const subNow = rows.filter((r) => r.sub_start <= todayStr && todayStr <= r.sub_end).map((r) => r.name);
+    const refNow = rows.filter((r) => r.refund === todayStr).map((r) => r.name);
+    const listNow = rows.filter((r) => r.listing === todayStr).map((r) => r.name);
+    const parts = [];
+    if (subNow.length) parts.push(`청약 중: ${subNow.join(', ')}`);
+    if (refNow.length) parts.push(`오늘 환불: ${refNow.join(', ')}`);
+    if (listNow.length) parts.push(`오늘 상장: ${listNow.join(', ')}`);
+    el.textContent = `${fmtD(todayStr)} 기준 · ` + (parts.length ? parts.join(' · ') : '오늘은 청약·환불·상장 일정이 없습니다.');
+  }
+
+  dash.onData(() => {
+    const d = dash.data('ipo');
+    rows = d.status === 'ok' ? d.data.map((r) => ({ ...r, listing: r.listing || null, price_final: r.price_final ?? null })) : [];
+    if (d.status === 'ok' && !rows.some((r) => r.name === selected)) {
+      const next = rows.filter((r) => r.sub_end >= todayStr).sort((a, b) => d3.ascending(a.sub_start, b.sub_start))[0];
+      selected = next ? next.name : null;
+    }
+    takeaway();
+    drawDetail();
+    if (d.status === 'ok') { tile('tile-sub', 'sub_end', '청약'); tile('tile-refund', 'refund', '환불'); tile('tile-list', 'listing', '상장'); }
+    else if (d.status === 'error' || d.status === 'connect') { document.querySelectorAll('.ip-tile .body').forEach((b) => { b.classList.remove('dash-skeleton'); fail(b); }); }
+    drawCal();
+    drawTable();
+  });
+})();
+</script>
