@@ -686,14 +686,15 @@ window.d3 = {
   투자 권유가 아닌 정보 제공용이며, 청약 전 증권사 공고와 투자설명서를 꼭 확인하세요.
 </footer>
 <script>
-// "마지막 업데이트" 표시
+// "마지막 확인" 표시 (checked_at: 매시간 확인 시각, 없으면 updated_at)
 fetch('data/meta.json?v=' + Date.now(), { cache: 'no-store' })
   .then((r) => (r.ok ? r.json() : null))
   .then((m) => {
-    if (!m || !m.updated_at) return;
-    const d = new Date(m.updated_at);
+    const at = m && (m.checked_at || m.updated_at);
+    if (!at) return;
+    const d = new Date(at);
     const t = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d);
-    const el = document.createElement('div'); el.className = 'ip-updated'; el.textContent = '마지막 업데이트 · ' + t;
+    const el = document.createElement('div'); el.className = 'ip-updated'; el.textContent = '마지막 확인 · ' + t;
     const head = document.querySelector('.ip-head'); if (head) head.appendChild(el);
   })
   .catch(() => {});
