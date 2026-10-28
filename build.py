@@ -116,13 +116,23 @@ FOOT = """
   투자 권유가 아닌 정보 제공용이며, 청약 전 증권사 공고와 투자설명서를 꼭 확인하세요.
 </footer>
 <script>
-// "마지막 확인" 표시 (checked_at: 매시간 확인 시각, 없으면 updated_at)
-fetch('data/meta.json?v=' + Date.now(), { cache: 'no-store' })
+// "마지막 확인" 표시
+// 1순위: GitHub에 data/meta.json이 마지막으로 올라간 실제 시각(서버 시계 기준이라 항상 정확)
+// 2순위: meta.json에 적힌 checked_at / updated_at
+const fromGitHub = fetch('https://api.github.com/repos/miiinkio/ipo-calendar/commits?path=data/meta.json&per_page=1', { cache: 'no-store' })
   .then((r) => (r.ok ? r.json() : null))
-  .then((m) => {
-    const at = m && (m.checked_at || m.updated_at);
+  .then((c) => (Array.isArray(c) && c[0] && c[0].commit && c[0].commit.committer ? c[0].commit.committer.date : null))
+  .catch(() => null);
+const fromMeta = fetch('data/meta.json?v=' + Date.now(), { cache: 'no-store' })
+  .then((r) => (r.ok ? r.json() : null))
+  .then((m) => m && (m.checked_at || m.updated_at))
+  .catch(() => null);
+Promise.all([fromGitHub, fromMeta])
+  .then(([gh, meta]) => {
+    const at = gh || meta;
     if (!at) return;
     const d = new Date(at);
+    if (isNaN(d)) return;
     const t = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(d);
     const el = document.createElement('div'); el.className = 'ip-updated'; el.textContent = '마지막 확인 · ' + t;
     const head = document.querySelector('.ip-head'); if (head) head.appendChild(el);
