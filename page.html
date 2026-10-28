@@ -103,6 +103,11 @@
 .ip-detail .dsum .v.muted { color: var(--color-fg-muted); }
 .ip-detail .dsum .s { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); font-variant-numeric: tabular-nums; }
 .ip-detail .uwl { font-size: var(--cds-font-size-body); font-weight: var(--cds-font-weight-medium); line-height: 1.35; }
+.ip-detail .mcrow { grid-column: 1 / -1; border-top: 1px solid var(--color-border-line); padding: 8px var(--cds-pad-md); display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.ip-detail .mcrow .k { font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); }
+.ip-detail .mcv { font-weight: var(--cds-font-weight-medium); font-variant-numeric: tabular-nums; }
+.ip-detail .mcv.muted { color: var(--color-fg-muted); font-weight: 400; }
+.ip-detail .mcrow .s { flex-basis: 100%; font-size: 11px; color: var(--color-fg-muted); }
 .ip-detail .feerow { grid-column: 1 / -1; border-top: 1px solid var(--color-border-line); padding: 8px var(--cds-pad-md); }
 .ip-detail .ifee { display: inline-block; font-size: var(--cds-font-size-caption); color: var(--color-fg-muted); border: 1px solid var(--color-border-line); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .ip-detail .ifee b { font-weight: var(--cds-font-weight-medium); }
@@ -340,7 +345,25 @@
     fee.appendChild(r.inst_fee ? mark(el('b', null, r.inst_fee), 'inst_fee', r.name) : el('b', null, '확인 전'));
     const fr = el('div', 'feerow');
     fr.appendChild(fee);
-    sum.append(pc, uc, fr);
+    // 예상 시가총액 = 상장예정주식수 × 공모가
+    const mc = el('div', 'mcrow');
+    mc.appendChild(el('div', 'k', '예상 시가총액'));
+    const eok = (n) => { const v = n / 1e8; if (v >= 10000) { const jo = Math.floor(v / 10000), rest = Math.round(v % 10000); return jo + '조' + (rest ? ' ' + d3.format(',')(rest) + '억' : ''); } return d3.format(',')(Math.round(v)) + '억'; };
+    const sh = +r.listed_shares;
+    if (sh > 0) {
+      const mv = el('div', 'mcv');
+      if (r.price_final != null) {
+        mv.textContent = eok(sh * r.price_final) + '원';
+        mc.append(mv, el('div', 's', `확정 공모가 기준 · 상장주식 ${d3.format(',')(sh)}주`));
+      } else if (r.band_low != null && r.band_high != null) {
+        mv.textContent = +r.band_low === +r.band_high ? eok(sh * r.band_low) + '원' : `${eok(sh * r.band_low)} ~ ${eok(sh * r.band_high)}원`;
+        mc.append(mv, el('div', 's', `희망 밴드 기준 · 상장주식 ${d3.format(',')(sh)}주`));
+      }
+      mark(mv, 'listed_shares', r.name);
+    } else {
+      mc.appendChild(el('div', 'mcv muted', '확인 전'));
+    }
+    sum.append(pc, uc, mc, fr);
 
     // 3) 일정 타임라인
     const tl = el('ol', 'tl');
