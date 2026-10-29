@@ -252,5 +252,19 @@ def main() -> int:
     return 0
 
 
+def annotate(level: str) -> None:
+    """Actions 주석으로 로그를 남김 (로그인 없이 공개 API로 읽을 수 있게)."""
+    if os.environ.get("GITHUB_ACTIONS"):
+        body = "\n".join(log_lines)[-60000:]
+        body = body.replace("%", "%25").replace("\r", "").replace("\n", "%0A")
+        print(f"::{level} title=DART 동기화 결과::{body}")
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        code = main()
+    except Exception as e:  # noqa: BLE001
+        log(f"오류: {type(e).__name__}: {e}")
+        code = 1
+    annotate("error" if code else "notice")
+    sys.exit(code)
