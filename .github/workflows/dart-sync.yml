@@ -11,7 +11,8 @@ on:
   # 스크립트를 고치면 미리보기로만 한 번 돌려 봅니다 (데이터는 절대 안 바꿈)
   push:
     branches: [main]
-    paths: ["scripts/dart_sync.py", ".github/workflows/dart-sync.yml"]
+    paths: ["scripts/dart_sync.py", ".github/workflows/dart-sync.yml", ".github/run-now"]
+  # .github/run-now 파일을 고쳐 올리면 그 자리에서 실제 동기화를 한 번 돌립니다
   schedule:                       # 평일 08~20시(KST) 매시 17분
     - cron: "17 23 * * 0-4"       # 08시 (전날 UTC 23시)
     - cron: "17 0-11 * * 1-5"     # 09~20시
@@ -35,14 +36,15 @@ jobs:
       - name: OpenDART에서 가져오기
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          DRY_RUN: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+          DRY_RUN: ${{ (github.event_name == 'push' && !contains(github.event.head_commit.message, '[run-now]')) || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         run: python3 scripts/dart_sync.py
       - name: 바뀐 내용 커밋
-        if: ${{ github.event_name != 'push' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        if: ${{ (github.event_name == 'schedule') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[run-now]')) || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
         run: |
           if git diff --quiet -- data/; then echo "변경 없음"; exit 0; fi
           git config user.name "dart-sync-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/ipo.json data/meta.json
           git commit -m "DART 자동 동기화 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')"
+          git pull --rebase -q origin main
           git push
