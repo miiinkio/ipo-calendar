@@ -167,10 +167,12 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
     groups = {g.get("title", ""): g.get("list") or [] for g in (e.get("group") or [])}
     gen = sorted(groups.get("일반사항", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
     if not gen:
+        log(f"  - {latest['corp_name']}: estkRs 일반사항 없음")
         return None
     sbd = dates_in(gen[0].get("sbd", ""))
     pym = dates_in(gen[0].get("pymd", ""))
     if len(sbd) < 1 or sbd[-1] < (today - dt.timedelta(days=7)).isoformat():
+        log(f"  - {latest['corp_name']}: 청약일 {sbd} 지남/없음")
         return None  # 일정 없음 또는 이미 지난 공모
     kinds = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
     k0 = kinds[0] if kinds else {}
@@ -301,6 +303,8 @@ def main() -> int:
             continue
         fs = sorted(fs, key=lambda x: x["rcept_no"], reverse=True)
         latest = fs[0]
+        if "한화" in latest["corp_name"] or "기업인수목적" in latest["corp_name"]:
+            log(f"  ? {latest['corp_name']} cls={latest.get('corp_cls')} " + " / ".join(f"{f['rcept_no']} {f['report_nm']}" for f in fs[:4]))
         if latest.get("corp_cls") != "E" or any("철회" in f.get("report_nm", "") for f in fs[:1]):
             continue
         try:
@@ -308,6 +312,9 @@ def main() -> int:
         except Exception as ex:  # noqa: BLE001
             log(f"+ {latest['corp_name']}: 확인 실패 {ex}")
             continue
+        if new and new["band_low"] is None and not new["underwriter"]:
+            log(f"  - {new['name']}: 밴드·주관사 없어 제외")
+            new = None
         if new:
             rows.append(new)
             known.add(key)
