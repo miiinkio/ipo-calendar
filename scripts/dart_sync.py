@@ -222,7 +222,7 @@ def main() -> int:
             for k in ("listed_shares", "inst_fee"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
-            if r.get("demand_start") is None and info.get("demand_start"):
+            if r.get("type") != "스팩" and r.get("demand_start") is None and info.get("demand_start"):
                 upd["demand_start"], upd["demand_end"] = info["demand_start"], info["demand_end"]
 
         if upd:
