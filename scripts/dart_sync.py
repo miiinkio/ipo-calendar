@@ -152,6 +152,62 @@ def parse_doc(t: str) -> dict:
     return out
 
 
+def display_name(corp_name: str) -> str:
+    n = re.sub(r"\(주\)|㈜|주식회사", "", corp_name).strip()
+    m = re.search(r"제?(\d+)호\s*기업인수목적", n)
+    if m:
+        sponsor = n[: m.start()].replace("에스케이", "SK").replace("엔에이치", "NH").replace("케이비", "KB").replace("아이비케이", "IBK")
+        sponsor = re.sub(r"(증권|투자증권)$", "", sponsor)
+        return f"{sponsor}스팩{m.group(1)}호"
+    return n
+
+
+def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) -> dict | None:
+    e = call_json("estkRs.json", corp_code=latest["corp_code"], bgn_de=bgn, end_de=end)
+    groups = {g.get("title", ""): g.get("list") or [] for g in (e.get("group") or [])}
+    gen = sorted(groups.get("일반사항", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
+    if not gen:
+        return None
+    sbd = dates_in(gen[0].get("sbd", ""))
+    pym = dates_in(gen[0].get("pymd", ""))
+    if len(sbd) < 1 or sbd[-1] < (today - dt.timedelta(days=7)).isoformat():
+        return None  # 일정 없음 또는 이미 지난 공모
+    kinds = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
+    k0 = kinds[0] if kinds else {}
+    uw = []
+    for u in sorted(groups.get("인수인정보", []), key=lambda x: x.get("rcept_no", ""), reverse=True):
+        if u.get("rcept_no") != (gen[0].get("rcept_no")):
+            continue
+        nm = (u.get("actnmn") or "").strip()
+        if nm and nm not in uw and ("대표" in (u.get("actsen") or "") or not uw):
+            uw.append(nm)
+    body = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
+    txt = document_text(body["rcept_no"])
+    if "상장" not in txt:
+        return None  # 상장 목적 공모가 아님
+    info = parse_doc(txt)
+    spac = "기업인수목적" in latest["corp_name"]
+    band_low = band_high = None
+    m = re.search(r"희망\s*공모\s*가(?:액|격)?[^0-9]{0,40}([\d,]{3,})\s*원?\s*[~∼\-]\s*([\d,]{3,})\s*원", txt)
+    if m:
+        band_low, band_high = to_int(m.group(1)), to_int(m.group(2))
+    price = to_int(k0.get("slprc"))
+    if spac:
+        band_low = band_high = price or 2000
+    final = price if ("발행조건확정" in latest.get("report_nm", "") or spac) else None
+    kosdaq, kospi = txt.count("코스닥시장"), txt.count("유가증권시장")
+    return {
+        "name": display_name(latest["corp_name"]), "market": "코스피" if kospi > kosdaq else "코스닥",
+        "type": "스팩" if spac else "일반",
+        "demand_start": None if spac else info.get("demand_start"), "demand_end": None if spac else info.get("demand_end"),
+        "sub_start": sbd[0], "sub_end": sbd[-1], "refund": pym[0] if pym else None, "listing": None,
+        "band_low": band_low, "band_high": band_high, "price_final": final,
+        "underwriter": ", ".join(uw[:3]) or None, "inst_fee": info.get("inst_fee"),
+        "dart_rcp": latest["rcept_no"], "listed_shares": info.get("listed_shares"),
+        "offer_shares": to_int(k0.get("stkcnt")), "note": "DART 자동 추가",
+    }
+
+
 def main() -> int:
     if not KEY:
         log("DART_API_KEY 가 없습니다. 저장소 Settings → Secrets 에 등록하세요.")
@@ -237,6 +293,26 @@ def main() -> int:
             log(changes[-1])
         else:
             log(f"- {name}: 변경 없음")
+
+    # 4) 새 공모주 추가: 비상장사(corp_cls E)의 증권신고서인데 목록에 없는 회사
+    known = {norm(aliases.get(r["name"], r["name"])) for r in rows}
+    for key, fs in filings.items():
+        if key in known:
+            continue
+        fs = sorted(fs, key=lambda x: x["rcept_no"], reverse=True)
+        latest = fs[0]
+        if latest.get("corp_cls") != "E" or any("철회" in f.get("report_nm", "") for f in fs[:1]):
+            continue
+        try:
+            new = build_new(latest, fs, bgn, end, today)
+        except Exception as ex:  # noqa: BLE001
+            log(f"+ {latest['corp_name']}: 확인 실패 {ex}")
+            continue
+        if new:
+            rows.append(new)
+            known.add(key)
+            changes.append(f"+ 새 종목 {new['name']}: 청약 {new['sub_start']}~{new['sub_end']}, 밴드 {new['band_low']}~{new['band_high']}, 주관 {new['underwriter']}")
+            log(changes[-1])
 
     log(f"\n변경 {len(changes)}종목")
     if not DRY:
