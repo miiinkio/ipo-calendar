@@ -167,11 +167,10 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
     groups = {g.get("title", ""): g.get("list") or [] for g in (e.get("group") or [])}
     gen = sorted(groups.get("일반사항", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
     if not gen:
-        log(f"  - {latest['corp_name']}: estkRs 일반사항 없음")
         return None
     sbd = dates_in(gen[0].get("sbd", ""))
     pym = dates_in(gen[0].get("pymd", ""))
-    if len(sbd) < 1 or sbd[-1] < (today - dt.timedelta(days=7)).isoformat():
+    if len(sbd) < 1 or sbd[-1] < (today - dt.timedelta(days=21)).isoformat():
         log(f"  - {latest['corp_name']}: 청약일 {sbd} 지남/없음")
         return None  # 일정 없음 또는 이미 지난 공모
     kinds = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
@@ -183,9 +182,11 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
         nm = (u.get("actnmn") or "").strip()
         if nm and nm not in uw and ("대표" in (u.get("actsen") or "") or not uw):
             uw.append(nm)
-    body = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
+    cands = [f for f in fs if "지분증권" in f.get("report_nm", "") and not any(x in f.get("report_nm", "") for x in ("발행조건확정", "첨부정정", "철회"))]
+    body = cands[0] if cands else latest
     txt = document_text(body["rcept_no"])
     if "상장" not in txt:
+        log(f"  - {latest['corp_name']}: 원문에 상장 언급 없음 ({body['rcept_no']})")
         return None  # 상장 목적 공모가 아님
     info = parse_doc(txt)
     spac = "기업인수목적" in latest["corp_name"]
@@ -303,10 +304,10 @@ def main() -> int:
             continue
         fs = sorted(fs, key=lambda x: x["rcept_no"], reverse=True)
         latest = fs[0]
-        if "한화" in latest["corp_name"] or "기업인수목적" in latest["corp_name"]:
-            log(f"  ? {latest['corp_name']} cls={latest.get('corp_cls')} " + " / ".join(f"{f['rcept_no']} {f['report_nm']}" for f in fs[:4]))
         if latest.get("corp_cls") != "E" or any("철회" in f.get("report_nm", "") for f in fs[:1]):
             continue
+        if not any("지분증권" in f.get("report_nm", "") for f in fs):
+            continue  # 은행·카드·캐피탈 등의 채권/파생 신고서
         try:
             new = build_new(latest, fs, bgn, end, today)
         except Exception as ex:  # noqa: BLE001
