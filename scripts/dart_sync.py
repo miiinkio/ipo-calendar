@@ -222,7 +222,8 @@ def main() -> int:
             info = parse_doc(txt)
             if DRY and r.get("listed_shares") is None and "listed_shares" not in info:
                 # 원문에서 주식수 표현을 못 찾은 경우, 주변 문장을 남겨서 규칙을 보완
-                for kw in ("상장예정주식", "상장 예정 주식", "공모 후 발행주식", "공모후 발행주식", "발행주식총수"):
+                log(f"    [{name}] 원문 {body['rcept_no']} {body.get('report_nm')} 길이={len(txt)} 앞부분: {txt[:150]}")
+                for kw in ("상장예정", "상장 예정", "공모 후", "공모후", "발행주식총수", "상장주식"):
                     for m in list(re.finditer(kw, txt))[:2]:
                         log(f"    [{name} {body['rcept_no']} len={len(txt)}] …{txt[m.start():m.start()+160]}…")
             for k in ("listed_shares", "inst_fee"):
