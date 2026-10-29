@@ -233,15 +233,17 @@ def main() -> int:
             log(f"- {name}: 변경 없음")
 
     log(f"\n변경 {len(changes)}종목")
-    if changes and not DRY:
-        rows = [{k: r.get(k) for k in ORDER} | {k: v for k, v in r.items() if k not in ORDER} for r in rows]
-        rows.sort(key=lambda x: x.get("sub_start") or "")
-        DATA.write_text("[\n" + ",\n".join(json.dumps(x, ensure_ascii=False) for x in rows) + "\n]\n", encoding="utf-8")
+    if not DRY:
         now = dt.datetime.now(KST).replace(microsecond=0).isoformat()
         meta = json.loads(META.read_text(encoding="utf-8")) if META.exists() else {}
-        meta.update({"updated_at": now, "checked_at": now})
+        meta["checked_at"] = now
+        if changes:
+            rows = [{k: r.get(k) for k in ORDER} | {k: v for k, v in r.items() if k not in ORDER} for r in rows]
+            rows.sort(key=lambda x: x.get("sub_start") or "")
+            DATA.write_text("[\n" + ",\n".join(json.dumps(x, ensure_ascii=False) for x in rows) + "\n]\n", encoding="utf-8")
+            meta["updated_at"] = now
+            log("data/ipo.json 저장함")
         META.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
-        log("data/ipo.json 저장함")
     elif DRY:
         log("미리보기 모드라 파일은 바꾸지 않았습니다.")
 

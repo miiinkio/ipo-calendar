@@ -1,6 +1,6 @@
 name: DART 동기화
 
-# 지금은 수동 실행만 됩니다. 자동 실행은 사용자가 켜라고 할 때 아래 schedule 주석을 풉니다.
+# 평일 08~20시 매시간 자동 실행. 끄려면 schedule 부분을 주석 처리하세요.
 on:
   workflow_dispatch:
     inputs:
@@ -12,8 +12,9 @@ on:
   push:
     branches: [main]
     paths: ["scripts/dart_sync.py", ".github/workflows/dart-sync.yml"]
-  # schedule:
-  #   - cron: "17 23-11 * * 0-4"   # 평일 08~20시(KST) 매시 17분
+  schedule:                       # 평일 08~20시(KST) 매시 17분
+    - cron: "17 23 * * 0-4"       # 08시 (전날 UTC 23시)
+    - cron: "17 0-11 * * 1-5"     # 09~20시
 
 permissions:
   contents: write
