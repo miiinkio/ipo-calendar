@@ -1,0 +1,43 @@
+name: DART 동기화
+
+# 지금은 수동 실행만 됩니다. 자동 실행은 사용자가 켜라고 할 때 아래 schedule 주석을 풉니다.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "미리보기만 (데이터 안 바꿈)"
+        type: boolean
+        default: true
+  # schedule:
+  #   - cron: "17 23-11 * * 0-4"   # 평일 08~20시(KST) 매시 17분
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dart-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: OpenDART에서 가져오기
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: python3 scripts/dart_sync.py
+      - name: 바뀐 내용 커밋
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        run: |
+          if git diff --quiet -- data/; then echo "변경 없음"; exit 0; fi
+          git config user.name "dart-sync-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ipo.json data/meta.json
+          git commit -m "DART 자동 동기화 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')"
+          git push
