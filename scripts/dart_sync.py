@@ -33,7 +33,7 @@ KEY = os.environ.get("DART_API_KEY", "").strip()
 DRY = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 KST = dt.timezone(dt.timedelta(hours=9))
 ORDER = ["name", "market", "type", "demand_start", "demand_end", "sub_start", "sub_end", "refund", "listing",
-         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "note"]
+         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note"]
 log_lines: list[str] = []
 
 
@@ -207,6 +207,11 @@ def main() -> int:
                     f"일정 정정({r.get('sub_start')}~{r.get('sub_end')}→{sbd[0]}~{sbd[-1]}, DART)"
             if pym and pym[0] != r.get("refund"):
                 upd["refund"] = pym[0]
+        kinds_all = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
+        if kinds_all:
+            oc = to_int(kinds_all[0].get("stkcnt"))
+            if oc and oc != r.get("offer_shares"):
+                upd["offer_shares"] = oc
         if "발행조건확정" in latest.get("report_nm", "") and r.get("price_final") is None:
             kinds = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
             if kinds and kinds[0].get("rcept_no") == latest["rcept_no"]:
@@ -217,15 +222,9 @@ def main() -> int:
         # 3) 원문: 상장예정주식수, 기관 청약수수료, 수요예측 기간 (발행조건확정 제외한 최신 신고서)
         need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None
         if need_doc:
-            body = next((f for f in fs if "발행조건확정" not in f.get("report_nm", "")), latest)
+            body = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
             txt = document_text(body["rcept_no"])
             info = parse_doc(txt)
-            if DRY and r.get("listed_shares") is None and "listed_shares" not in info:
-                # 원문에서 주식수 표현을 못 찾은 경우, 주변 문장을 남겨서 규칙을 보완
-                log(f"    [{name}] 원문 {body['rcept_no']} {body.get('report_nm')} 길이={len(txt)} 앞부분: {txt[:150]}")
-                for kw in ("상장예정", "상장 예정", "공모 후", "공모후", "발행주식총수", "상장주식"):
-                    for m in list(re.finditer(kw, txt))[:2]:
-                        log(f"    [{name} {body['rcept_no']} len={len(txt)}] …{txt[m.start():m.start()+160]}…")
             for k in ("listed_shares", "inst_fee"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]

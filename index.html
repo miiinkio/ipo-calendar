@@ -458,7 +458,23 @@ window.d3 = {
     } else {
       mc.appendChild(el('div', 'mcv muted', '확인 전'));
     }
-    sum.append(pc, uc, mc, fr);
+    // 공모 규모 = 공모주식수 × 공모가
+    const oc = el('div', 'mcrow');
+    oc.appendChild(el('div', 'k', '공모 규모'));
+    const os = +r.offer_shares;
+    if (os > 0) {
+      const ov = el('div', 'mcv');
+      if (r.price_final != null) {
+        ov.textContent = eok(os * r.price_final) + '원';
+        oc.append(ov, el('div', 's', `확정 공모가 기준 · 공모주식 ${d3.format(',')(os)}주`));
+      } else if (r.band_low != null && r.band_high != null) {
+        ov.textContent = +r.band_low === +r.band_high ? eok(os * r.band_low) + '원' : `${eok(os * r.band_low)} ~ ${eok(os * r.band_high)}원`;
+        oc.append(ov, el('div', 's', `희망 밴드 기준 · 공모주식 ${d3.format(',')(os)}주`));
+      }
+    } else {
+      oc.appendChild(el('div', 'mcv muted', '확인 전'));
+    }
+    sum.append(pc, uc, mc, oc, fr);
 
     // 3) 일정 타임라인
     const tl = el('ol', 'tl');
