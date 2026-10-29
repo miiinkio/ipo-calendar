@@ -218,7 +218,13 @@ def main() -> int:
         need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None
         if need_doc:
             body = next((f for f in fs if "발행조건확정" not in f.get("report_nm", "")), latest)
-            info = parse_doc(document_text(body["rcept_no"]))
+            txt = document_text(body["rcept_no"])
+            info = parse_doc(txt)
+            if DRY and r.get("listed_shares") is None and "listed_shares" not in info:
+                # 원문에서 주식수 표현을 못 찾은 경우, 주변 문장을 남겨서 규칙을 보완
+                for kw in ("상장예정주식", "상장 예정 주식", "공모 후 발행주식", "공모후 발행주식", "발행주식총수"):
+                    for m in list(re.finditer(kw, txt))[:2]:
+                        log(f"    [{name} {body['rcept_no']} len={len(txt)}] …{txt[m.start():m.start()+160]}…")
             for k in ("listed_shares", "inst_fee"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
