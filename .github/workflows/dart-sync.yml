@@ -8,6 +8,10 @@ on:
         description: "미리보기만 (데이터 안 바꿈)"
         type: boolean
         default: true
+  # 스크립트를 고치면 미리보기로만 한 번 돌려 봅니다 (데이터는 절대 안 바꿈)
+  push:
+    branches: [main]
+    paths: ["scripts/dart_sync.py", ".github/workflows/dart-sync.yml"]
   # schedule:
   #   - cron: "17 23-11 * * 0-4"   # 평일 08~20시(KST) 매시 17분
 
@@ -30,10 +34,10 @@ jobs:
       - name: OpenDART에서 가져오기
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          DRY_RUN: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         run: python3 scripts/dart_sync.py
       - name: 바뀐 내용 커밋
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
+        if: ${{ github.event_name != 'push' && !(github.event_name == 'workflow_dispatch' && inputs.dry_run) }}
         run: |
           if git diff --quiet -- data/; then echo "변경 없음"; exit 0; fi
           git config user.name "dart-sync-bot"

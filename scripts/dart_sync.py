@@ -159,7 +159,7 @@ def main() -> int:
     rows = json.loads(DATA.read_text(encoding="utf-8"))
     aliases = json.loads(ALIASES.read_text(encoding="utf-8")) if ALIASES.exists() else {}
     today = dt.datetime.now(KST).date()
-    bgn = (today - dt.timedelta(days=120)).strftime("%Y%m%d")
+    bgn = (today - dt.timedelta(days=89)).strftime("%Y%m%d")
     end = today.strftime("%Y%m%d")
 
     # 1) 증권신고서(지분증권) 목록
