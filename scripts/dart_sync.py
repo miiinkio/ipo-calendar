@@ -179,7 +179,7 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
     for u in sorted(groups.get("인수인정보", []), key=lambda x: x.get("rcept_no", ""), reverse=True):
         if u.get("rcept_no") != (gen[0].get("rcept_no")):
             continue
-        nm = (u.get("actnmn") or "").strip()
+        nm = (u.get("actnmn") or "").strip().strip("-").strip()
         if nm and nm not in uw and ("대표" in (u.get("actsen") or "") or not uw):
             uw.append(nm)
     cands = [f for f in fs if "지분증권" in f.get("report_nm", "") and not any(x in f.get("report_nm", "") for x in ("발행조건확정", "첨부정정", "철회"))]
