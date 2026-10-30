@@ -141,6 +141,9 @@ def parse_doc(t: str) -> dict:
             if "기관" in ctx and re.search(r"배정\s*된?\s*금액의\s*[\d.]+\s*%", ctx):
                 out["inst_fee"] = "있음"
                 break
+    m = re.search(r"(?:매매\s*개시|신규\s*상장|상장)\s*(?:예정)?\s*일[^0-9]{0,20}(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", t)
+    if m and dates_in(m.group(1).replace(".", "-")):
+        out["listing"] = dates_in(m.group(1).replace(".", "-"))[0]
     m = re.search(r"수요예측[^.]{0,300}?접수\s*기간[^0-9]{0,15}(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)[^~]{0,30}~\s*((?:\d{4}\s*년\s*)?\d{1,2}\s*월\s*\d{1,2}\s*일)", t)
     if m:
         a = dates_in(m.group(1))
@@ -203,7 +206,7 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
         "name": display_name(latest["corp_name"]), "market": "코스피" if kospi > kosdaq else "코스닥",
         "type": "스팩" if spac else "일반",
         "demand_start": None if spac else info.get("demand_start"), "demand_end": None if spac else info.get("demand_end"),
-        "sub_start": sbd[0], "sub_end": sbd[-1], "refund": pym[0] if pym else None, "listing": None,
+        "sub_start": sbd[0], "sub_end": sbd[-1], "refund": pym[0] if pym else None, "listing": info.get("listing"),
         "band_low": band_low, "band_high": band_high, "price_final": final,
         "underwriter": ", ".join(uw[:3]) or None, "inst_fee": info.get("inst_fee"),
         "dart_rcp": latest["rcept_no"], "listed_shares": info.get("listed_shares"),
@@ -279,12 +282,12 @@ def main() -> int:
                     upd["price_final"] = p
 
         # 3) 원문: 상장예정주식수, 기관 청약수수료, 수요예측 기간 (발행조건확정 제외한 최신 신고서)
-        need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None
+        need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None or r.get("listing") is None
         if need_doc:
             body = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
             txt = document_text(body["rcept_no"])
             info = parse_doc(txt)
-            for k in ("listed_shares", "inst_fee"):
+            for k in ("listed_shares", "inst_fee", "listing"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
             if r.get("type") != "스팩" and r.get("demand_start") is None and info.get("demand_start"):
