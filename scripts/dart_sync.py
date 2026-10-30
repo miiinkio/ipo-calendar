@@ -298,7 +298,14 @@ def main() -> int:
             if p and (r.get("band_low") is None or 0.5 * r["band_low"] <= p <= 1.5 * (r.get("band_high") or p)):
                 upd["price_final"] = p
             elif not p:
-                log(f"  ! {name}: 발행조건확정({conf['rcept_no']}) 있는데 확정가를 못 읽음")
+                # API에 아직 안 잡히면 발행조건확정 원문에서 직접 읽음
+                t = document_text(conf["rcept_no"])
+                m = re.search(r"(?:확정\s*공모\s*가(?:액|격)?|1\s*주당\s*(?:모집|공모)\s*가(?:액|격)?)[^0-9]{0,40}([\d,]{4,})\s*원", t)
+                p = to_int(m.group(1)) if m else None
+                if p and (r.get("band_low") is None or 0.5 * r["band_low"] <= p <= 1.5 * (r.get("band_high") or p)):
+                    upd["price_final"] = p
+                else:
+                    log(f"  ! {name}: 발행조건확정({conf['rcept_no']}) 있는데 확정가를 못 읽음 (원문 후보 {p})")
 
         # 3) 원문: 상장예정주식수, 기관 청약수수료, 수요예측 기간 (발행조건확정 제외한 최신 신고서)
         need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None or r.get("listing") is None
