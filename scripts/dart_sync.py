@@ -374,6 +374,29 @@ def main() -> int:
     for x in audit:
         if x["status"] == "제외":
             log(f"  제외 {x['corp']} ({x['report']} {x['rcp']}): {x['detail']}")
+    # 5) 빈칸 점검: 있어야 할 시점인데 비어 있는 값
+    warns: list[dict] = []
+    T = today.isoformat()
+    def bdays_after(d: str, n: int) -> str:
+        x = dt.date.fromisoformat(d)
+        while n:
+            x += dt.timedelta(days=1)
+            if x.weekday() < 5:
+                n -= 1
+        return x.isoformat()
+    for r in rows:
+        nm = r["name"]
+        if r.get("type") != "스팩" and r.get("demand_end") and r.get("price_final") is None and T > bdays_after(r["demand_end"], 1):
+            warns.append({"name": nm, "what": "확정 공모가", "why": f"수요예측 {r['demand_end']} 종료 후 1영업일 지남"})
+        if r.get("sub_end") and r.get("listing") is None and T >= r["sub_end"]:
+            warns.append({"name": nm, "what": "상장일", "why": f"청약 {r['sub_end']} 마감인데 상장일 비어 있음"})
+        for k, label in (("listed_shares", "상장주식수"), ("offer_shares", "공모주식수"), ("inst_fee", "기관 청약수수료"), ("underwriter", "주관사")):
+            if not r.get(k):
+                warns.append({"name": nm, "what": label, "why": "비어 있음"})
+        if r.get("type") != "스팩" and not r.get("demand_start") and r.get("sub_start") and r["sub_start"] > T:
+            warns.append({"name": nm, "what": "수요예측 일정", "why": "비어 있음"})
+    for w in warns:
+        log(f"  확인 필요: {w['name']} {w['what']} ({w['why']})")
     on_cal = {norm(aliases.get(r["name"], r["name"])) for r in rows}
     not_on_dart = [r["name"] for r in rows if norm(aliases.get(r["name"], r["name"])) not in filings]
     if not_on_dart:
@@ -392,7 +415,7 @@ def main() -> int:
             log("data/ipo.json 저장함")
         META.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
         AUDIT.write_text(json.dumps({"checked_at": now, "from": bgn, "to": end, "nonequity": nonequity,
-                                     "counts": cnt, "not_on_dart": not_on_dart, "items": audit},
+                                     "counts": cnt, "not_on_dart": not_on_dart, "warnings": warns, "items": audit},
                                     ensure_ascii=False, indent=0), encoding="utf-8")
     elif DRY:
         log("미리보기 모드라 파일은 바꾸지 않았습니다.")

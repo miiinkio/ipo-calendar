@@ -41,6 +41,7 @@ tr:last-child td { border-bottom: 0; }
   <h1>DART 대조표</h1>
   <p class="sub" id="sub">불러오는 중…</p>
   <div class="sum" id="sum"></div>
+  <div class="eq" id="warn" hidden></div>
   <div class="eq" id="eq"></div>
   <div class="filters" id="filters"></div>
   <div class="tw"><table><thead><tr><th>결과</th><th>DART 회사명</th><th>캘린더 종목 / 제외 사유</th><th>최근 지분증권 신고서</th><th>접수번호</th></tr></thead><tbody id="tb"></tbody></table></div>
@@ -73,6 +74,11 @@ fetch('data/dart_audit.json?v=' + Date.now(), { cache: 'no-store' }).then((r) =>
   const card = (k, v) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`;
   $('sum').innerHTML = card('DART 지분증권 신고 회사', total) + card('캘린더에 있음', c['있음']) + card('이번에 새로 추가', c['추가']) + card('제외 (사유 표시)', c['제외']);
   $('eq').textContent = `${total}곳 = 캘린더에 있음 ${c['있음']} + 새로 추가 ${c['추가']} + 제외 ${c['제외']}. 빠진 회사 없이 모든 신고 회사가 셋 중 하나로 분류돼요.`;
+  const w = d.warnings || [];
+  const wb = $('warn'); wb.hidden = false;
+  wb.innerHTML = '';
+  const wt = document.createElement('b'); wt.textContent = w.length ? `확인 필요 ${w.length}건 — 있어야 할 시점인데 비어 있는 값` : '확인 필요 0건 — 비어 있으면 안 되는 값이 모두 채워져 있어요'; wb.appendChild(wt);
+  if (w.length) { const ul = document.createElement('ul'); ul.style.margin = '6px 0 0'; ul.style.paddingLeft = '18px'; for (const x of w) { const li = document.createElement('li'); li.textContent = `${x.name} · ${x.what} (${x.why})`; ul.appendChild(li); } wb.appendChild(ul); wb.style.borderColor = 'var(--skip)'; }
   const fs = ['전체', '있음', '추가', '제외'];
   $('filters').innerHTML = '';
   for (const f of fs) { const b = document.createElement('button'); b.textContent = f; b.setAttribute('aria-pressed', f === filter); b.onclick = () => { filter = f; [...$('filters').children].forEach((x) => x.setAttribute('aria-pressed', x.textContent === filter)); render(); }; $('filters').appendChild(b); }
