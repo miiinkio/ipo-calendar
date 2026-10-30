@@ -41,10 +41,10 @@ jobs:
       - name: 바뀐 내용 커밋
         if: ${{ (github.event_name == 'schedule') || (github.event_name == 'push' && contains(github.event.head_commit.message, '[run-now]')) || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
         run: |
-          if git diff --quiet -- data/; then echo "변경 없음"; exit 0; fi
+          if git diff --quiet -- data/ && [ -z "$(git status --porcelain data/)" ]; then echo "변경 없음"; exit 0; fi
           git config user.name "dart-sync-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/ipo.json data/meta.json
+          git add data/ipo.json data/meta.json data/dart_audit.json
           git commit -m "DART 자동 동기화 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')"
           git pull --rebase -q origin main
           git push

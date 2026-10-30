@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DART 대조표</title>
+<meta name="description" content="DART에 올라온 증권신고서(지분증권)를 공모주 캘린더와 하나씩 대조한 결과">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#f6f5f1; --panel:#fff; --fg:#1f1e1b; --muted:#6b6860; --line:#e3e0d8; --ok:#1f7a4d; --add:#2f6fdf; --skip:#a86a00; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg:#161614; --panel:#201f1c; --fg:#ecebe6; --muted:#a3a097; --line:#34322d; --ok:#5cc794; --add:#6c9cf0; --skip:#e0a64a; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:'Noto Sans KR', system-ui, -apple-system, 'Apple SD Gothic Neo', sans-serif; -webkit-font-smoothing: antialiased; }
+main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+a { color: inherit; }
+.back { font-size: 13px; color: var(--muted); text-decoration: none; }
+h1 { font-size: 24px; margin: 10px 0 6px; }
+.sub { color: var(--muted); font-size: 14px; line-height: 1.6; margin: 0 0 18px; }
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.card .k { font-size: 12px; color: var(--muted); }
+.card .v { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.eq { font-size: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin-bottom: 18px; line-height: 1.6; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.filters button { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.filters button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.tw { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.st { font-weight: 700; white-space: nowrap; }
+.st.있음 { color: var(--ok); } .st.추가 { color: var(--add); } .st.제외 { color: var(--skip); }
+.rcp { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.note { color: var(--muted); font-size: 12px; margin-top: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="./">← 공모주 캘린더</a>
+  <h1>DART 대조표</h1>
+  <p class="sub" id="sub">불러오는 중…</p>
+  <div class="sum" id="sum"></div>
+  <div class="eq" id="eq"></div>
+  <div class="filters" id="filters"></div>
+  <div class="tw"><table><thead><tr><th>결과</th><th>DART 회사명</th><th>캘린더 종목 / 제외 사유</th><th>최근 지분증권 신고서</th><th>접수번호</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <p class="note" id="note"></p>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const fmt = (s) => s ? s.slice(0, 4) + '.' + s.slice(4, 6) + '.' + s.slice(6, 8) : '';
+let data = null, filter = '전체';
+function render() {
+  const items = data.items.filter((x) => filter === '전체' || x.status === filter);
+  $('tb').innerHTML = '';
+  for (const x of items) {
+    const tr = document.createElement('tr');
+    const td = (t, c) => { const e = document.createElement('td'); if (c) e.className = c; e.textContent = t; tr.appendChild(e); return e; };
+    td(x.status, 'st ' + x.status);
+    td(x.corp);
+    td(x.detail);
+    td(x.report + (x.filings > 1 ? ` (외 ${x.filings - 1}건)` : ''));
+    const c = td('', 'rcp');
+    const a = document.createElement('a'); a.href = 'https://dart.fss.or.kr/dsaf001/main.do?rcpNo=' + x.rcp; a.target = '_blank'; a.rel = 'noopener'; a.textContent = x.rcp; c.appendChild(a);
+    $('tb').appendChild(tr);
+  }
+}
+fetch('data/dart_audit.json?v=' + Date.now(), { cache: 'no-store' }).then((r) => r.json()).then((d) => {
+  data = d;
+  const t = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(d.checked_at));
+  $('sub').textContent = `OpenDART에서 ${fmt(d.from)} ~ ${fmt(d.to)}에 접수된 증권신고서(지분증권)를 회사별로 전부 가져와 캘린더와 대조한 결과예요. 마지막 대조 · ${t}`;
+  const total = d.items.length, c = d.counts;
+  const card = (k, v) => `<div class="card"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  $('sum').innerHTML = card('DART 지분증권 신고 회사', total) + card('캘린더에 있음', c['있음']) + card('이번에 새로 추가', c['추가']) + card('제외 (사유 표시)', c['제외']);
+  $('eq').textContent = `${total}곳 = 캘린더에 있음 ${c['있음']} + 새로 추가 ${c['추가']} + 제외 ${c['제외']}. 빠진 회사 없이 모든 신고 회사가 셋 중 하나로 분류돼요.`;
+  const fs = ['전체', '있음', '추가', '제외'];
+  $('filters').innerHTML = '';
+  for (const f of fs) { const b = document.createElement('button'); b.textContent = f; b.setAttribute('aria-pressed', f === filter); b.onclick = () => { filter = f; [...$('filters').children].forEach((x) => x.setAttribute('aria-pressed', x.textContent === filter)); render(); }; $('filters').appendChild(b); }
+  let note = `은행·카드·캐피탈 등 채권·파생결합증권만 신고한 ${d.nonequity}곳은 공모주가 아니라 대조에서 뺐어요.`;
+  if (d.not_on_dart && d.not_on_dart.length) note += ` 조회 기간(최근 89일, OpenDART 제한)보다 먼저 신고해 이 표에 안 나오는 캘린더 종목: ${d.not_on_dart.join(', ')}.`;
+  $('note').textContent = note;
+  render();
+}).catch(() => { $('sub').textContent = '대조 결과를 아직 불러오지 못했어요. 다음 자동 업데이트 후 다시 확인해 주세요.'; });
+</script>
+</body>
+</html>

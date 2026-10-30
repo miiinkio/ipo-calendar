@@ -35,6 +35,8 @@ KST = dt.timezone(dt.timedelta(hours=9))
 ORDER = ["name", "market", "type", "demand_start", "demand_end", "sub_start", "sub_end", "refund", "listing",
          "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note"]
 log_lines: list[str] = []
+SKIP = ""
+AUDIT = ROOT / "data" / "dart_audit.json"
 
 
 def log(s: str) -> None:
@@ -169,12 +171,14 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
     e = call_json("estkRs.json", corp_code=latest["corp_code"], bgn_de=bgn, end_de=end)
     groups = {g.get("title", ""): g.get("list") or [] for g in (e.get("group") or [])}
     gen = sorted(groups.get("일반사항", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
+    global SKIP
     if not gen:
+        SKIP = "청약 일정 정보 없음(estkRs)"
         return None
     sbd = dates_in(gen[0].get("sbd", ""))
     pym = dates_in(gen[0].get("pymd", ""))
     if len(sbd) < 1 or sbd[-1] < (today - dt.timedelta(days=21)).isoformat():
-        log(f"  - {latest['corp_name']}: 청약일 {sbd} 지남/없음")
+        SKIP = f"청약 종료 3주 경과({sbd[-1] if sbd else '일정 없음'})"
         return None  # 일정 없음 또는 이미 지난 공모
     kinds = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
     k0 = kinds[0] if kinds else {}
@@ -189,7 +193,7 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
     body = cands[0] if cands else latest
     txt = document_text(body["rcept_no"])
     if "상장" not in txt:
-        log(f"  - {latest['corp_name']}: 원문에 상장 언급 없음 ({body['rcept_no']})")
+        SKIP = "상장 목적 공모 아님(원문에 상장 언급 없음)"
         return None  # 상장 목적 공모가 아님
     info = parse_doc(txt)
     spac = "기업인수목적" in latest["corp_name"]
@@ -300,30 +304,52 @@ def main() -> int:
         else:
             log(f"- {name}: 변경 없음")
 
-    # 4) 새 공모주 추가: 비상장사(corp_cls E)의 증권신고서인데 목록에 없는 회사
-    known = {norm(aliases.get(r["name"], r["name"])) for r in rows}
-    for key, fs in filings.items():
-        if key in known:
-            continue
+    # 4) 새 공모주 추가 + 대조표: 기간 안의 지분증권 신고서 전부를 캘린더와 맞춰 봄
+    global SKIP
+    known = {norm(aliases.get(r["name"], r["name"])): r["name"] for r in rows}
+    audit: list[dict] = []
+    nonequity = 0
+    for key, fs in sorted(filings.items(), key=lambda kv: max(f["rcept_no"] for f in kv[1]), reverse=True):
         fs = sorted(fs, key=lambda x: x["rcept_no"], reverse=True)
+        eq = [f for f in fs if "지분증권" in f.get("report_nm", "")]
+        if not eq:
+            nonequity += 1  # 은행·카드·캐피탈 등 채권/파생결합증권 신고서
+            continue
         latest = fs[0]
-        if latest.get("corp_cls") != "E" or any("철회" in f.get("report_nm", "") for f in fs[:1]):
-            continue
-        if not any("지분증권" in f.get("report_nm", "") for f in fs):
-            continue  # 은행·카드·캐피탈 등의 채권/파생 신고서
-        try:
-            new = build_new(latest, fs, bgn, end, today)
-        except Exception as ex:  # noqa: BLE001
-            log(f"+ {latest['corp_name']}: 확인 실패 {ex}")
-            continue
-        if new and new["band_low"] is None and not new["underwriter"]:
-            log(f"  - {new['name']}: 밴드·주관사 없어 제외")
-            new = None
-        if new:
-            rows.append(new)
-            known.add(key)
-            changes.append(f"+ 새 종목 {new['name']}: 청약 {new['sub_start']}~{new['sub_end']}, 밴드 {new['band_low']}~{new['band_high']}, 주관 {new['underwriter']}")
-            log(changes[-1])
+        item = {"corp": latest["corp_name"], "cls": latest.get("corp_cls"), "rcp": eq[0]["rcept_no"],
+                "report": eq[0]["report_nm"], "filings": len(eq)}
+        if key in known:
+            item.update(status="있음", detail=known[key])
+        elif latest.get("corp_cls") in ("Y", "K", "N"):
+            item.update(status="제외", detail="이미 상장된 회사의 유상증자 등")
+        elif any("철회" in f.get("report_nm", "") for f in fs[:1]):
+            item.update(status="제외", detail="공모 철회")
+        else:
+            SKIP = ""
+            try:
+                new = build_new(latest, fs, bgn, end, today)
+            except Exception as ex:  # noqa: BLE001
+                new, SKIP = None, f"확인 실패: {ex}"
+            if new and new["band_low"] is None and not new["underwriter"]:
+                new, SKIP = None, "공모가·주관사 없음(국내 공모주 아님)"
+            if new:
+                rows.append(new)
+                known[key] = new["name"]
+                changes.append(f"+ 새 종목 {new['name']}: 청약 {new['sub_start']}~{new['sub_end']}, 밴드 {new['band_low']}~{new['band_high']}, 주관 {new['underwriter']}")
+                log(changes[-1])
+                item.update(status="추가", detail=new["name"])
+            else:
+                item.update(status="제외", detail=SKIP or "알 수 없음")
+        audit.append(item)
+    cnt = {k: sum(1 for x in audit if x["status"] == k) for k in ("있음", "추가", "제외")}
+    log(f"\n대조: 지분증권 신고서 {len(audit)}곳 = 캘린더에 있음 {cnt['있음']} + 새로 추가 {cnt['추가']} + 제외 {cnt['제외']} (채권·파생 신고서 {nonequity}곳 별도)")
+    for x in audit:
+        if x["status"] == "제외":
+            log(f"  제외 {x['corp']} ({x['report']} {x['rcp']}): {x['detail']}")
+    on_cal = {norm(aliases.get(r["name"], r["name"])) for r in rows}
+    not_on_dart = [r["name"] for r in rows if norm(aliases.get(r["name"], r["name"])) not in filings]
+    if not_on_dart:
+        log(f"  참고: 조회기간({bgn}~{end}) 밖이라 DART 목록에 안 보이는 캘린더 종목: {', '.join(not_on_dart)}")
 
     log(f"\n변경 {len(changes)}종목")
     if not DRY:
@@ -337,6 +363,9 @@ def main() -> int:
             meta["updated_at"] = now
             log("data/ipo.json 저장함")
         META.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        AUDIT.write_text(json.dumps({"checked_at": now, "from": bgn, "to": end, "nonequity": nonequity,
+                                     "counts": cnt, "not_on_dart": not_on_dart, "items": audit},
+                                    ensure_ascii=False, indent=0), encoding="utf-8")
     elif DRY:
         log("미리보기 모드라 파일은 바꾸지 않았습니다.")
 
