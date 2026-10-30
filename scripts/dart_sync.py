@@ -248,6 +248,11 @@ def main() -> int:
     log(f"증권신고서(지분증권) {sum(map(len, filings.values()))}건, 회사 {len(filings)}곳")
 
     changes: list[str] = []
+    for r in rows:  # 말이 안 되는 상장일(청약 전이거나 30일 넘게 뒤) 정리
+        if r.get("listing") and not listing_ok(r["listing"], r.get("sub_end")):
+            changes.append(f"- {r['name']}: 잘못된 상장일 {r['listing']} 삭제")
+            log(changes[-1])
+            r["listing"] = None
     for r in rows:
         name = r["name"]
         key = norm(aliases.get(name, name))
