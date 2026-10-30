@@ -291,12 +291,14 @@ def main() -> int:
             oc = to_int(kinds_all[0].get("stkcnt"))
             if oc and oc != r.get("offer_shares"):
                 upd["offer_shares"] = oc
-        if "발행조건확정" in latest.get("report_nm", "") and r.get("price_final") is None:
-            kinds = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""), reverse=True)
-            if kinds and kinds[0].get("rcept_no") == latest["rcept_no"]:
-                p = to_int(kinds[0].get("slprc"))
-                if p and (r.get("band_low") is None or 0.5 * r["band_low"] <= p <= 1.5 * (r.get("band_high") or p)):
-                    upd["price_final"] = p
+        conf = next((f for f in fs if "발행조건확정" in f.get("report_nm", "")), None)
+        if conf and r.get("price_final") is None:
+            k = next((x for x in groups.get("증권의종류", []) if x.get("rcept_no") == conf["rcept_no"]), None)
+            p = to_int(k.get("slprc")) if k else None
+            if p and (r.get("band_low") is None or 0.5 * r["band_low"] <= p <= 1.5 * (r.get("band_high") or p)):
+                upd["price_final"] = p
+            elif not p:
+                log(f"  ! {name}: 발행조건확정({conf['rcept_no']}) 있는데 확정가를 못 읽음")
 
         # 3) 원문: 상장예정주식수, 기관 청약수수료, 수요예측 기간 (발행조건확정 제외한 최신 신고서)
         need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None or r.get("listing") is None
