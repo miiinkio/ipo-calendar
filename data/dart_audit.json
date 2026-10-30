@@ -1,5 +1,5 @@
 {
-"checked_at": "2026-10-30T13:03:15+09:00",
+"checked_at": "2026-10-30T14:02:34+09:00",
 "from": "20260802",
 "to": "20261030",
 "nonequity": 101,
@@ -10,6 +10,15 @@
 },
 "not_on_dart": [],
 "items": [
+{
+"corp": "SimwonAmericaCorp.",
+"cls": "E",
+"rcp": "20261012000149",
+"report": "증권신고서(지분증권)",
+"filings": 1,
+"status": "제외",
+"detail": "공모 철회"
+},
 {
 "corp": "에이엘로봇",
 "cls": "E",
@@ -213,7 +222,7 @@
 "cls": "E",
 "rcp": "20261026000367",
 "report": "[첨부정정]증권신고서(지분증권)",
-"filings": 4,
+"filings": 3,
 "status": "있음",
 "detail": "제논"
 },
@@ -522,15 +531,6 @@
 "filings": 1,
 "status": "제외",
 "detail": "이미 상장된 회사의 유상증자 등"
-},
-{
-"corp": "SimwonAmericaCorp.",
-"cls": "E",
-"rcp": "20261012000149",
-"report": "증권신고서(지분증권)",
-"filings": 1,
-"status": "제외",
-"detail": "공모가·주관사 없음(국내 공모주 아님)"
 },
 {
 "corp": "다비오",
