@@ -33,7 +33,7 @@ KEY = os.environ.get("DART_API_KEY", "").strip()
 DRY = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 KST = dt.timezone(dt.timedelta(hours=9))
 ORDER = ["name", "market", "type", "demand_start", "demand_end", "sub_start", "sub_end", "refund", "listing",
-         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note"]
+         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked"]
 log_lines: list[str] = []
 SKIP = ""
 AUDIT = ROOT / "data" / "dart_audit.json"
@@ -287,7 +287,11 @@ def main() -> int:
 
         # 3) 원문: 상장예정주식수, 기관 청약수수료, 수요예측 기간 (발행조건확정 제외한 최신 신고서)
         need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None or r.get("listing") is None
+        body0 = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
+        if need_doc and r.get("doc_checked") == body0["rcept_no"]:
+            need_doc = False  # 같은 원문은 이미 읽었음
         if need_doc:
+            upd["doc_checked"] = body0["rcept_no"]
             body = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
             txt = document_text(body["rcept_no"])
             info = parse_doc(txt)
