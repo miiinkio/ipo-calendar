@@ -30,6 +30,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main   # 항상 최신 main에서 시작 (다른 실행과 충돌 방지)
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"

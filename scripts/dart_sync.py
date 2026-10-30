@@ -157,6 +157,14 @@ def parse_doc(t: str) -> dict:
     return out
 
 
+def listing_ok(listing: str | None, sub_end: str | None) -> bool:
+    """원문에서 읽은 상장일은 청약 마감 뒤 1~30일 사이일 때만 믿음 (다른 회사·과거 상장일 방지)."""
+    if not listing or not sub_end:
+        return False
+    d = (dt.date.fromisoformat(listing) - dt.date.fromisoformat(sub_end)).days
+    return 1 <= d <= 30
+
+
 def display_name(corp_name: str) -> str:
     n = re.sub(r"\(주\)|㈜|주식회사", "", corp_name).strip()
     m = re.search(r"제?(\d+)호\s*기업인수목적", n)
@@ -210,7 +218,7 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
         "name": display_name(latest["corp_name"]), "market": "코스피" if kospi > kosdaq else "코스닥",
         "type": "스팩" if spac else "일반",
         "demand_start": None if spac else info.get("demand_start"), "demand_end": None if spac else info.get("demand_end"),
-        "sub_start": sbd[0], "sub_end": sbd[-1], "refund": pym[0] if pym else None, "listing": info.get("listing"),
+        "sub_start": sbd[0], "sub_end": sbd[-1], "refund": pym[0] if pym else None, "listing": info.get("listing") if listing_ok(info.get("listing"), sbd[-1]) else None,
         "band_low": band_low, "band_high": band_high, "price_final": final,
         "underwriter": ", ".join(uw[:3]) or None, "inst_fee": info.get("inst_fee"),
         "dart_rcp": latest["rcept_no"], "listed_shares": info.get("listed_shares"),
@@ -295,6 +303,8 @@ def main() -> int:
             body = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
             txt = document_text(body["rcept_no"])
             info = parse_doc(txt)
+            if not listing_ok(info.get("listing"), r.get("sub_end")):
+                info.pop("listing", None)
             for k in ("listed_shares", "inst_fee", "listing"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
