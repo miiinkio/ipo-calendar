@@ -1,0 +1,42 @@
+name: 과거 상장 종목 찾기
+
+# scripts/backfill.py를 고쳐 올리면 미리보기로 한 번 돌고, 후보는 data/backfill_candidates.json에만 저장합니다.
+# (캘린더 데이터 data/ipo.json은 건드리지 않음)
+on:
+  push:
+    branches: [main]
+    paths: ["scripts/backfill.py", ".github/workflows/backfill.yml"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dart-sync
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: 후보 찾기
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          BACKFILL_WRITE: "true"
+        run: python3 scripts/backfill.py
+      - name: 후보 파일 저장
+        run: |
+          [ -f data/backfill_candidates.json ] || exit 0
+          git config user.name "dart-sync-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/backfill_candidates.json
+          git diff --cached --quiet && exit 0
+          git commit -m "과거 상장 종목 후보 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')"
+          git pull --rebase -q origin main
+          git push
