@@ -386,6 +386,8 @@ def main() -> int:
         return x.isoformat()
     for r in rows:
         nm = r["name"]
+        if r.get("listing") and r["listing"] < T:
+            continue  # 이미 상장한 종목(확약 해제용)은 빈칸 점검 제외
         if r.get("type") != "스팩" and r.get("demand_end") and r.get("price_final") is None and T > bdays_after(r["demand_end"], 1):
             warns.append({"name": nm, "what": "확정 공모가", "why": f"수요예측 {r['demand_end']} 종료 후 1영업일 지남"})
         if r.get("sub_end") and r.get("listing") is None and T >= r["sub_end"]:
