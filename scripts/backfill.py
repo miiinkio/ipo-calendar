@@ -34,42 +34,29 @@ def main() -> int:
     out = []
     for corp, fs in filings.items():
         fs.sort(key=lambda x: x["rcept_no"])
-        names = {f["corp_name"] for f in fs}
         cls = fs[-1].get("corp_cls")
         if cls not in ("Y", "K"):
-            continue  # 아직 비상장(공모 중) — 기존 동기화가 처리
-        e = d.call_json("estkRs.json", corp_code=corp, bgn_de=fs[0]["rcept_dt"], end_de=fs[-1]["rcept_dt"])
-        groups = {g.get("title", ""): g.get("list") or [] for g in (e.get("group") or [])}
-        kinds = sorted(groups.get("증권의종류", []), key=lambda x: x.get("rcept_no", ""))
-        gen = sorted(groups.get("일반사항", []), key=lambda x: x.get("rcept_no", ""))
-        meth = " ".join({k.get("slmthn", "") for k in kinds})
-        spac = any("기업인수목적" in n for n in names)
-        if not spac and "주주배정" in meth:
-            continue  # 상장사 유상증자
-        if not spac and not any("발행조건확정" in f["report_nm"] for f in fs):
-            continue  # 수요예측 거친 IPO가 아님
-        # 거래소 공시(상장 관련) — 상장일 후보
-        ex = d.call_json("list.json", corp_code=corp, bgn_de=fs[0]["rcept_dt"], end_de="20261103", pblntf_ty="I", page_count=100)
-        exl = [(x["rcept_dt"], x["report_nm"], x.get("flr_nm")) for x in (ex.get("list") or [])]
-        ex_listing = [x for x in exl if "신규상장" in x[1] or "상장승인" in x[1] or "매매개시" in x[1]]
-        conf = next((f for f in reversed(fs) if "발행조건확정" in f["report_nm"]), None)
-        kconf = next((k for k in kinds if conf and k.get("rcept_no") == conf["rcept_no"]), kinds[-1] if kinds else {})
-        g = gen[-1] if gen else {}
-        uw = []
-        for u in groups.get("인수인정보", []):
-            nm = (u.get("actnmn") or "").strip()
-            if nm and nm not in uw and "대표" in (u.get("actsen") or ""):
-                uw.append(nm)
+            continue
+        # 실적보고서는 C001이 아닐 수 있어 회사별로 다시 조회
+        allf = d.call_json("list.json", corp_code=corp, bgn_de=fs[0]["rcept_dt"], end_de="20261103", pblntf_ty="C", page_count=100).get("list") or []
+        rep = [f for f in allf if "실적보고서" in f.get("report_nm", "")]
+        conf = [f for f in fs if "발행조건확정" in f.get("report_nm", "")]
+        if not rep:
+            continue
+        t = d.document_text(rep[-1]["rcept_no"])
+        ipo = ("공모 후" in t or "공모후" in t) and "최대주주" in t
+        def snip(kw, n=110):
+            m = re.search(kw, t)
+            return t[m.start(): m.start() + n] if m else ""
         item = {
-            "corp": fs[-1]["corp_name"], "corp_code": corp, "cls": cls, "spac": spac,
-            "sbd": d.dates_in(g.get("sbd", "")), "pymd": d.dates_in(g.get("pymd", "")),
-            "price": d.to_int(kconf.get("slprc")), "offer_shares": d.to_int(kconf.get("stkcnt")),
-            "method": meth, "underwriter": uw, "dart_rcp": fs[-1]["rcept_no"],
-            "reports": [f"{f['rcept_dt']} {f['report_nm']}" for f in fs][-4:],
-            "ex_listing": ex_listing[:4], "ex_sample": sorted({x[1] for x in exl})[:12],
+            "corp": fs[-1]["corp_name"], "corp_code": corp, "cls": cls, "ipo_like": ipo,
+            "report": rep[-1]["rcept_no"], "conf": conf[-1]["rcept_no"] if conf else None,
+            "s_listing": snip(r"상장\s*(예정)?\s*일"), "s_sub": snip(r"청약\s*기일|청약\s*일"),
+            "s_pay": snip(r"납입\s*기일|납입\s*일"), "s_price": snip(r"(발행|모집|공모)\s*가액"),
+            "s_uw": snip(r"(대표)?\s*주관회사|인수인"), "s_shares": snip(r"(발행|모집)\s*(주식)?\s*수"),
         }
         out.append(item)
-        d.log(f"* {item['corp']} {cls} 청약{item['sbd']} 납입{item['pymd']} 가격{item['price']} 공모{item['offer_shares']} 주관{uw} 방식[{meth}] 상장공시{ex_listing[:2]}")
+        d.log(f"* {item['corp']} {cls} IPO형={ipo} 상장:[{item['s_listing'][:60]}] 청약:[{item['s_sub'][:60]}]")
     d.log(f"\n후보 {len(out)}곳")
     if os.environ.get("BACKFILL_WRITE") == "true":
         OUT.write_text(json.dumps(out, ensure_ascii=False, indent=0), encoding="utf-8")
