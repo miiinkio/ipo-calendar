@@ -1,6 +1,6 @@
 name: DART 동기화
 
-# 평일 08~20시 매시간 자동 실행. 끄려면 schedule 부분을 주석 처리하세요.
+# 평일 06~20시 매시간 자동 실행. 끄려면 schedule 부분을 주석 처리하세요.
 on:
   workflow_dispatch:
     inputs:
@@ -14,8 +14,8 @@ on:
     paths: ["scripts/dart_sync.py", ".github/workflows/dart-sync.yml", ".github/run-now"]
   # .github/run-now 파일을 고쳐 올리면 그 자리에서 실제 동기화를 한 번 돌립니다
   # GitHub가 예약 실행을 가끔 건너뛰어서 매시 17분·47분 두 번 걸어 둠 (겹치면 순서대로 실행)
-  schedule:                       # 평일 08~20시(KST)
-    - cron: "17,47 23 * * 0-4"    # 08시 (전날 UTC 23시)
+  schedule:                       # 평일 06~20시(KST)
+    - cron: "17,47 21-23 * * 0-4" # 06~08시 (전날 UTC 21~23시)
     - cron: "17,47 0-11 * * 1-5"  # 09~20시
 
 permissions:
