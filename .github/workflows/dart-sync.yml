@@ -13,9 +13,10 @@ on:
     branches: [main]
     paths: ["scripts/dart_sync.py", ".github/workflows/dart-sync.yml", ".github/run-now"]
   # .github/run-now 파일을 고쳐 올리면 그 자리에서 실제 동기화를 한 번 돌립니다
-  schedule:                       # 평일 08~20시(KST) 매시 17분
-    - cron: "17 23 * * 0-4"       # 08시 (전날 UTC 23시)
-    - cron: "17 0-11 * * 1-5"     # 09~20시
+  # GitHub가 예약 실행을 가끔 건너뛰어서 매시 17분·47분 두 번 걸어 둠 (겹치면 순서대로 실행)
+  schedule:                       # 평일 08~20시(KST)
+    - cron: "17,47 23 * * 0-4"    # 08시 (전날 UTC 23시)
+    - cron: "17,47 0-11 * * 1-5"  # 09~20시
 
 permissions:
   contents: write
@@ -48,5 +49,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/ipo.json data/meta.json data/dart_audit.json
           git commit -m "DART 자동 동기화 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')"
-          git pull --rebase -q origin main
-          git push
+          for i in 1 2 3; do
+            git pull --rebase -X theirs -q origin main && git push && exit 0
+            git rebase --abort 2>/dev/null || true
+            sleep 5
+          done
+          exit 1
