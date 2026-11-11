@@ -57,7 +57,7 @@ window.dash = (() => {
     state[id] = { status: 'loading', data: [] };
     fetch(url + '?v=' + Date.now(), { cache: 'no-store' })
       .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then((d) => { state[id] = { status: 'ok', data: Array.isArray(d) ? d : (d.rows || d.data || []) }; fire(); })
+      .then((d) => { let rows = Array.isArray(d) ? d : (d.rows || d.data || []); if (id === 'ipo') rows = rows.filter((r) => !r.withdrawn); state[id] = { status: 'ok', data: rows }; fire(); })
       .catch((e) => { state[id] = { status: 'error', data: [], message: String(e) }; fire(); });
   });
   let w = window.innerWidth;

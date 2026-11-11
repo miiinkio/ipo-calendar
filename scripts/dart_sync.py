@@ -33,7 +33,7 @@ KEY = os.environ.get("DART_API_KEY", "").strip()
 DRY = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 KST = dt.timezone(dt.timedelta(hours=9))
 ORDER = ["name", "market", "type", "demand_start", "demand_end", "sub_start", "sub_end", "refund", "listing",
-         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked", "listing_docs"]
+         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked", "listing_docs", "withdrawn"]
 log_lines: list[str] = []
 SKIP = ""
 AUDIT = ROOT / "data" / "dart_audit.json"
@@ -347,6 +347,18 @@ def main() -> int:
             if r.get("type") != "스팩" and r.get("demand_start") is None and info.get("demand_start"):
                 upd["demand_start"], upd["demand_end"] = info["demand_start"], info["demand_end"]
 
+        # 공모 철회: 청약 전·중인 종목은 회사 공시 목록에서 '철회' 신고서 확인
+        if not r.get("withdrawn") and r.get("sub_end") and r["sub_end"] >= today.isoformat():
+            try:
+                allc = call_json("list.json", corp_code=corp, bgn_de=bgn, end_de=end, pblntf_ty="C", page_count=100).get("list") or []
+            except Exception:  # noqa: BLE001
+                allc = []
+            wd = next((f for f in allc if "철회" in f.get("report_nm", "")), None)
+            if wd:
+                upd["withdrawn"] = True
+                upd["note"] = ((r.get("note") or "") + "; " if r.get("note") else "") + f"공모 철회({wd['rcept_dt'][4:6]}/{wd['rcept_dt'][6:]}, DART)"
+                upd["dart_rcp"] = wd["rcept_no"]
+                log(f"  {name}: 공모 철회 확인 ({wd['report_nm']} {wd['rcept_no']})")
         # 상장일: 비어 있으면 최근 신고서(발행조건확정·투자설명서 포함)를 새로 올라온 것만 읽어 찾음
         if r.get("listing") is None and r.get("sub_end") and r["sub_end"] >= (today - dt.timedelta(days=30)).isoformat():
             seen = list(r.get("listing_docs") or [])
@@ -422,7 +434,7 @@ def main() -> int:
         return x.isoformat()
     for r in rows:
         nm = r["name"]
-        if r.get("listing") and r["listing"] < T:
+        if (r.get("listing") and r["listing"] < T) or r.get("withdrawn"):
             continue  # 이미 상장한 종목(확약 해제용)은 빈칸 점검 제외
         if r.get("type") != "스팩" and r.get("demand_end") and r.get("price_final") is None and T > bdays_after(r["demand_end"], 1):
             warns.append({"name": nm, "what": "확정 공모가", "why": f"수요예측 {r['demand_end']} 종료 후 1영업일 지남"})
