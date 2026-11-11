@@ -285,7 +285,7 @@ def main() -> int:
         latest = fs[0]
         corp = latest["corp_code"]
         upd: dict = {}
-        if "철회" in latest.get("report_nm", "") and "공모 철회" not in (r.get("note") or ""):
+        if False and "철회" in latest.get("report_nm", ""):  # 아래 '공모 철회' 확인으로 대체
             upd["note"] = ((r.get("note") or "") + "; " if r.get("note") else "") + "공모 철회(DART)"
         if r.get("dart_rcp") != latest["rcept_no"]:
             upd["dart_rcp"] = latest["rcept_no"]
