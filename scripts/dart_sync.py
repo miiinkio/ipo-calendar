@@ -33,7 +33,7 @@ KEY = os.environ.get("DART_API_KEY", "").strip()
 DRY = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 KST = dt.timezone(dt.timedelta(hours=9))
 ORDER = ["name", "market", "type", "demand_start", "demand_end", "sub_start", "sub_end", "refund", "listing",
-         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked"]
+         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked", "listing_docs"]
 log_lines: list[str] = []
 SKIP = ""
 AUDIT = ROOT / "data" / "dart_audit.json"
@@ -163,6 +163,25 @@ def listing_ok(listing: str | None, sub_end: str | None) -> bool:
         return False
     d = (dt.date.fromisoformat(listing) - dt.date.fromisoformat(sub_end)).days
     return 1 <= d <= 30
+
+
+def find_listing(t: str, sub_end: str | None) -> str | None:
+    """'상장'/'매매개시' 뒤 80자 안의 날짜 중 청약 마감 1~30일 뒤인 첫 날짜. 연도 없는 'N월 N일'도 처리."""
+    if not sub_end:
+        return None
+    year = sub_end[:4]
+    for m in re.finditer(r"상장|매매\s*개시", t):
+        w = t[m.end(): m.end() + 80]
+        cands = dates_in(w)
+        for mo, dd in re.findall(r"(?<!\d)(\d{1,2})\s*월\s*(\d{1,2})\s*일", w):
+            try:
+                cands.append(dt.date(int(year), int(mo), int(dd)).isoformat())
+            except ValueError:
+                pass
+        for c in cands:
+            if listing_ok(c, sub_end):
+                return c
+    return None
 
 
 def display_name(corp_name: str) -> str:
@@ -325,6 +344,20 @@ def main() -> int:
             if r.get("type") != "스팩" and r.get("demand_start") is None and info.get("demand_start"):
                 upd["demand_start"], upd["demand_end"] = info["demand_start"], info["demand_end"]
 
+        # 상장일: 비어 있으면 최근 신고서(발행조건확정·투자설명서 포함)를 새로 올라온 것만 읽어 찾음
+        if r.get("listing") is None and r.get("sub_end") and r["sub_end"] >= (today - dt.timedelta(days=30)).isoformat():
+            seen = list(r.get("listing_docs") or [])
+            for f in fs[:3]:
+                if f["rcept_no"] in seen:
+                    continue
+                seen.append(f["rcept_no"])
+                L = find_listing(document_text(f["rcept_no"]), r["sub_end"])
+                if L:
+                    upd["listing"] = L
+                    log(f"  {name}: 상장일 {L} ({f['report_nm']} {f['rcept_no']})")
+                    break
+            if seen != (r.get("listing_docs") or []):
+                upd["listing_docs"] = seen[-6:]
         if upd:
             r.update(upd)
             changes.append(f"- {name}: " + ", ".join(f"{k}={v}" for k, v in upd.items()))
