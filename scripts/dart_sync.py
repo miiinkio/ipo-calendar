@@ -165,21 +165,22 @@ def listing_ok(listing: str | None, sub_end: str | None) -> bool:
     return 1 <= d <= 30
 
 
-def find_listing(t: str, sub_end: str | None) -> str | None:
-    """'상장'/'매매개시' 뒤 80자 안의 날짜 중 청약 마감 1~30일 뒤인 첫 날짜. 연도 없는 'N월 N일'도 처리."""
+def find_listing(t: str, sub_end: str | None, refund: str | None = None) -> str | None:
+    """'상장(예정)일'/'매매개시(예정)일' 바로 뒤 40자 안의 날짜만. 평일이고, 환불일 다음 날 이후, 청약 마감 30일 안."""
     if not sub_end:
         return None
     year = sub_end[:4]
-    for m in re.finditer(r"상장|매매\s*개시", t):
-        w = t[m.end(): m.end() + 80]
+    for m in re.finditer(r"(?:상장|매매\s*개시)\s*(?:예정)?\s*일(?!정)", t):
+        w = t[m.end(): m.end() + 40]
         cands = dates_in(w)
         for mo, dd in re.findall(r"(?<!\d)(\d{1,2})\s*월\s*(\d{1,2})\s*일", w):
             try:
                 cands.append(dt.date(int(year), int(mo), int(dd)).isoformat())
             except ValueError:
                 pass
-        for c in cands:
-            if listing_ok(c, sub_end):
+        for c in cands[:1]:  # 키워드 바로 뒤 첫 날짜만 인정
+            d = dt.date.fromisoformat(c)
+            if listing_ok(c, sub_end) and d.weekday() < 5 and (not refund or c > refund):
                 return c
     return None
 
@@ -268,7 +269,9 @@ def main() -> int:
 
     changes: list[str] = []
     for r in rows:  # 말이 안 되는 상장일(청약 전이거나 30일 넘게 뒤) 정리
-        if r.get("listing") and not listing_ok(r["listing"], r.get("sub_end")):
+        if r.get("listing") and (not listing_ok(r["listing"], r.get("sub_end"))
+                                 or dt.date.fromisoformat(r["listing"]).weekday() >= 5
+                                 or (r.get("refund") and r["listing"] <= r["refund"])):
             changes.append(f"- {r['name']}: 잘못된 상장일 {r['listing']} 삭제")
             log(changes[-1])
             r["listing"] = None
@@ -351,7 +354,7 @@ def main() -> int:
                 if f["rcept_no"] in seen:
                     continue
                 seen.append(f["rcept_no"])
-                L = find_listing(document_text(f["rcept_no"]), r["sub_end"])
+                L = find_listing(document_text(f["rcept_no"]), r["sub_end"], r.get("refund"))
                 if L:
                     upd["listing"] = L
                     log(f"  {name}: 상장일 {L} ({f['report_nm']} {f['rcept_no']})")
