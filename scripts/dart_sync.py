@@ -442,6 +442,9 @@ if __name__ == "__main__":
         code = main()
     except Exception as e:  # noqa: BLE001
         log(f"오류: {type(e).__name__}: {e}")
-        code = 1
-    annotate("error" if code else "notice")
+        # DART 서버 일시 장애·네트워크 문제는 다음 실행에서 자동 복구되므로 실패로 처리하지 않음 (실패 알림 메일 방지)
+        code = 0 if "호출 실패" in str(e) or isinstance(e, (TimeoutError, ConnectionError, OSError)) else 1
+        if code == 0:
+            log("일시적인 DART 접속 문제라 이번 실행은 건너뜀 (다음 실행에서 다시 시도)")
+    annotate("error" if code else ("warning" if any(l.startswith("오류") for l in log_lines) else "notice"))
     sys.exit(code)
