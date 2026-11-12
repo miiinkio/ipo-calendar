@@ -360,7 +360,7 @@ def main() -> int:
                 upd["dart_rcp"] = wd["rcept_no"]
                 log(f"  {name}: 공모 철회 확인 ({wd['report_nm']} {wd['rcept_no']})")
         # 상장일: 비어 있으면 최근 신고서(발행조건확정·투자설명서 포함)를 새로 올라온 것만 읽어 찾음
-        if (r.get("listing") is None or r.get("listing_src") == "news") and r.get("sub_end") and r["sub_end"] >= (today - dt.timedelta(days=30)).isoformat():
+        if (r.get("listing") is None or r.get("listing_src") in ("news", "user")) and r.get("sub_end") and r["sub_end"] >= (today - dt.timedelta(days=30)).isoformat():
             seen = list(r.get("listing_docs") or [])
             for f in fs[:3]:
                 if f["rcept_no"] in seen:
@@ -368,7 +368,7 @@ def main() -> int:
                 seen.append(f["rcept_no"])
                 L = find_listing(document_text(f["rcept_no"]), r["sub_end"], r.get("refund"))
                 if L:
-                    if r.get("listing_src") == "news" and L != r.get("listing"):
+                    if r.get("listing_src") in ("news", "user") and L != r.get("listing"):
                         log(f"  {name}: 기사 상장일 {r.get('listing')} → DART {L}로 교체")
                     upd["listing"] = L
                     upd["listing_src"] = "dart"
