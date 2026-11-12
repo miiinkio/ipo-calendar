@@ -438,8 +438,8 @@ def main() -> int:
             continue  # 이미 상장한 종목(확약 해제용)은 빈칸 점검 제외
         if r.get("type") != "스팩" and r.get("demand_end") and r.get("price_final") is None and T > bdays_after(r["demand_end"], 1):
             warns.append({"name": nm, "what": "확정 공모가", "why": f"수요예측 {r['demand_end']} 종료 후 1영업일 지남"})
-        if r.get("sub_end") and r.get("listing") is None and T >= r["sub_end"]:
-            warns.append({"name": nm, "what": "상장일", "why": f"청약 {r['sub_end']} 마감인데 상장일 비어 있음"})
+        if r.get("sub_start") and r.get("listing") is None and T >= r["sub_start"]:
+            warns.append({"name": nm, "what": "상장일", "why": f"청약 {r['sub_start']} 시작했는데 상장일 비어 있음"})
         for k, label in (("listed_shares", "상장주식수"), ("offer_shares", "공모주식수"), ("inst_fee", "기관 청약수수료"), ("underwriter", "주관사")):
             if not r.get(k):
                 warns.append({"name": nm, "what": label, "why": "비어 있음"})
