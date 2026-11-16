@@ -146,7 +146,21 @@ def parse_doc(t: str) -> dict:
     m = re.search(r"(?:매매\s*개시|신규\s*상장|상장)\s*(?:예정)?\s*일[^0-9]{0,20}(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일|\d{4}\.\s*\d{1,2}\.\s*\d{1,2})", t)
     if m and dates_in(m.group(1).replace(".", "-")):
         out["listing"] = dates_in(m.group(1).replace(".", "-"))[0]
-    m = re.search(r"수요예측[^.]{0,300}?접수\s*기간[^0-9]{0,15}(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)[^~]{0,30}~\s*((?:\d{4}\s*년\s*)?\d{1,2}\s*월\s*\d{1,2}\s*일)", t)
+    # 정정신고서 표: '수요예측일 (정정 전) A ~ B (정정 후) C ~ D' → 정정 후 날짜 사용
+    D_ = r"(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)(?:\s*\([^)]{1,3}\))?"
+    pair = re.compile(r"수요\s*예측\s*(?:일|기간|일정)\s*" + D_ + r"\s*~\s*" + D_ + r"(?:\s*" + D_ + r"\s*~\s*" + D_ + r")?")
+    m = pair.search(t)
+    if m:
+        g = m.groups()
+        a1, b1 = (g[2], g[3]) if g[2] else (g[0], g[1])
+        da, db = dates_in(a1), dates_in(b1)
+        if da and db and da[0] <= db[0]:
+            out["demand_start"], out["demand_end"] = da[0], db[0]
+            m = None
+    if "demand_start" in out:
+        pass
+    else:
+        m = re.search(r"수요예측[^.]{0,300}?접수\s*기간[^0-9]{0,15}(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)[^~]{0,30}~\s*((?:\d{4}\s*년\s*)?\d{1,2}\s*월\s*\d{1,2}\s*일)", t)
     if m:
         a = dates_in(m.group(1))
         y = a[0][:4] if a else None
@@ -339,9 +353,6 @@ def main() -> int:
             upd["doc_checked"] = body0["rcept_no"]
             _txt = document_text(body0["rcept_no"])
             info = parse_doc(_txt)
-            if upcoming and r.get("type") != "스팩" and not info.get("demand_start"):
-                for _m in list(re.finditer(r"수요\s*예측", _txt))[:6]:
-                    log(f"  [수요예측 문구 {name}] …{_txt[_m.start(): _m.start() + 140]}…")
             for k in ("listed_shares", "inst_fee"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
