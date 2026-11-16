@@ -330,22 +330,25 @@ def main() -> int:
                     log(f"  ! {name}: 발행조건확정({conf['rcept_no']}) 있는데 확정가를 못 읽음 (원문 후보 {p})")
 
         # 3) 원문: 상장예정주식수, 기관 청약수수료, 수요예측 기간 (발행조건확정 제외한 최신 신고서)
-        need_doc = r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None or r.get("listing") is None
         body0 = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
-        if need_doc and r.get("doc_checked") == body0["rcept_no"]:
-            need_doc = False  # 같은 원문은 이미 읽었음
+        upcoming = bool(r.get("sub_start")) and (upd.get("sub_start") or r["sub_start"]) >= today.isoformat()
+        need_doc = upcoming or r.get("listed_shares") is None or r.get("inst_fee") is None or r.get("demand_start") is None
+        if r.get("doc_checked") == body0["rcept_no"]:
+            need_doc = False  # 같은 원문은 이미 읽었음 (새 정정신고서가 올라오면 다시 읽음)
         if need_doc:
             upd["doc_checked"] = body0["rcept_no"]
-            body = next((f for f in fs if not any(x in f.get("report_nm", "") for x in ("발행조건확정", "실적보고서", "철회"))), latest)
-            txt = document_text(body["rcept_no"])
-            info = parse_doc(txt)
-            if not listing_ok(info.get("listing"), r.get("sub_end")):
-                info.pop("listing", None)
-            for k in ("listed_shares", "inst_fee", "listing"):
+            info = parse_doc(document_text(body0["rcept_no"]))
+            for k in ("listed_shares", "inst_fee"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
-            if r.get("type") != "스팩" and r.get("demand_start") is None and info.get("demand_start"):
-                upd["demand_start"], upd["demand_end"] = info["demand_start"], info["demand_end"]
+            # 수요예측 일정: 비어 있거나, 청약 전인데 정정신고서에서 날짜가 바뀌었으면 교체
+            ds, de = info.get("demand_start"), info.get("demand_end")
+            new_sub = upd.get("sub_start") or r.get("sub_start")
+            if r.get("type") != "스팩" and ds and de and (not new_sub or de < new_sub):
+                if r.get("demand_start") is None or (upcoming and (ds, de) != (r.get("demand_start"), r.get("demand_end"))):
+                    if r.get("demand_start"):
+                        log(f"  {name}: 수요예측 {r.get('demand_start')}~{r.get('demand_end')} → {ds}~{de} (DART {body0['rcept_no']})")
+                    upd["demand_start"], upd["demand_end"] = ds, de
 
         # 공모 철회: 청약 전·중인 종목은 회사 공시 목록에서 '철회' 신고서 확인
         if not r.get("withdrawn") and r.get("sub_end") and r["sub_end"] >= today.isoformat():
