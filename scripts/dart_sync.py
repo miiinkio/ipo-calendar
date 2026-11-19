@@ -251,7 +251,7 @@ def build_new(latest: dict, fs: list[dict], bgn: str, end: str, today: dt.date) 
     return {
         "name": display_name(latest["corp_name"]), "market": "코스피" if kospi > kosdaq else "코스닥",
         "type": "스팩" if spac else "일반",
-        "demand_start": None if spac else info.get("demand_start"), "demand_end": None if spac else info.get("demand_end"),
+        "demand_start": info.get("demand_start"), "demand_end": info.get("demand_end"),
         "sub_start": sbd[0], "sub_end": sbd[-1], "refund": pym[0] if pym else None, "listing": info.get("listing") if listing_ok(info.get("listing"), sbd[-1]) else None,
         "band_low": band_low, "band_high": band_high, "price_final": final,
         "underwriter": ", ".join(uw[:3]) or None, "inst_fee": info.get("inst_fee"),
@@ -359,7 +359,7 @@ def main() -> int:
             # 수요예측 일정: 비어 있거나, 청약 전인데 정정신고서에서 날짜가 바뀌었으면 교체
             ds, de = info.get("demand_start"), info.get("demand_end")
             new_sub = upd.get("sub_start") or r.get("sub_start")
-            if r.get("type") != "스팩" and ds and de and (not new_sub or de < new_sub):
+            if ds and de and (not new_sub or de < new_sub):  # 스팩도 수요예측 함
                 if r.get("demand_start") is None or (upcoming and (ds, de) != (r.get("demand_start"), r.get("demand_end"))):
                     if r.get("demand_start"):
                         log(f"  {name}: 수요예측 {r.get('demand_start')}~{r.get('demand_end')} → {ds}~{de} (DART {body0['rcept_no']})")
@@ -464,7 +464,7 @@ def main() -> int:
         for k, label in (("listed_shares", "상장주식수"), ("offer_shares", "공모주식수"), ("inst_fee", "기관 청약수수료"), ("underwriter", "주관사")):
             if not r.get(k):
                 warns.append({"name": nm, "what": label, "why": "비어 있음"})
-        if r.get("type") != "스팩" and not r.get("demand_start") and r.get("sub_start") and r["sub_start"] > T:
+        if not r.get("demand_start") and r.get("sub_start") and r["sub_start"] > T:
             warns.append({"name": nm, "what": "수요예측 일정", "why": "비어 있음"})
     for w in warns:
         log(f"  확인 필요: {w['name']} {w['what']} ({w['why']})")
