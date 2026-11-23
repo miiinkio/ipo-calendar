@@ -489,6 +489,7 @@ def main() -> int:
             meta["updated_at"] = now
             log("data/ipo.json 저장함")
         META.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+        (ROOT / "data" / "sync_log.txt").write_text("\n".join(log_lines) + "\n", encoding="utf-8")
         AUDIT.write_text(json.dumps({"checked_at": now, "from": bgn, "to": end, "nonequity": nonequity,
                                      "counts": cnt, "not_on_dart": not_on_dart, "warnings": warns, "items": audit},
                                     ensure_ascii=False, indent=0), encoding="utf-8")
