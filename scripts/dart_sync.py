@@ -352,7 +352,11 @@ def main() -> int:
         if need_doc:
             upd["doc_checked"] = body0["rcept_no"]
             _txt = document_text(body0["rcept_no"])
+            _txt = document_text(body0["rcept_no"])
             info = parse_doc(_txt)
+            if upcoming and not info.get("demand_start"):
+                for _m in list(re.finditer(r"수요\s*예측", _txt))[:8]:
+                    log(f"  [수요예측 문구 {name}] …{_txt[_m.start(): _m.start() + 150]}…")
             for k in ("listed_shares", "inst_fee"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
