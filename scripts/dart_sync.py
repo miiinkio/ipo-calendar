@@ -278,20 +278,22 @@ def main() -> int:
     bgn = (today - dt.timedelta(days=89)).strftime("%Y%m%d")
     end = today.strftime("%Y%m%d")
 
-    # 1) 증권신고서(지분증권) 목록
+    # 1) 증권신고서(지분증권) 목록 — OpenDART는 한 번에 3개월까지라 최근 6개월을 두 번에 나눠 조회
+    bgn_old = (today - dt.timedelta(days=179)).strftime("%Y%m%d")
+    end_old = (today - dt.timedelta(days=90)).strftime("%Y%m%d")
     filings: dict[str, list[dict]] = {}
-    for page in range(1, 20):
-        d = call_json("list.json", bgn_de=bgn, end_de=end, pblntf_ty="C", pblntf_detail_ty="C001", page_no=page, page_count=100)
-        items = d.get("list") or []
-        for it in items:
-            filings.setdefault(norm(it["corp_name"]), []).append(it)
-        if page >= int(d.get("total_page") or 1):
-            break
+    for wb, we in ((bgn, end), (bgn_old, end_old)):
+        for page in range(1, 20):
+            d = call_json("list.json", bgn_de=wb, end_de=we, pblntf_ty="C", pblntf_detail_ty="C001", page_no=page, page_count=100)
+            for it in d.get("list") or []:
+                filings.setdefault(norm(it["corp_name"]), []).append(it)
+            if page >= int(d.get("total_page") or 1):
+                break
     log(f"증권신고서(지분증권) {sum(map(len, filings.values()))}건, 회사 {len(filings)}곳")
 
     changes: list[str] = []
     for r in rows:  # 말이 안 되는 상장일(청약 전이거나 30일 넘게 뒤) 정리
-        if r.get("listing") and (not listing_ok(r["listing"], r.get("sub_end"))
+        if r.get("listing") and r.get("sub_end") and (not listing_ok(r["listing"], r.get("sub_end"))
                                  or dt.date.fromisoformat(r["listing"]).weekday() >= 5
                                  or (r.get("refund") and r["listing"] <= r["refund"])):
             changes.append(f"- {r['name']}: 잘못된 상장일 {r['listing']} 삭제")
@@ -316,6 +318,10 @@ def main() -> int:
         # 2) 증권신고서 주요정보: 청약기일, 납입기일, 모집가액
         try:
             e = call_json("estkRs.json", corp_code=corp, bgn_de=bgn, end_de=end)
+            if not any(g.get("title") == "일반사항" and g.get("list") for g in (e.get("group") or [])):
+                e2 = call_json("estkRs.json", corp_code=corp, bgn_de=bgn_old, end_de=end_old)
+                if e2.get("group"):
+                    e = {"group": (e.get("group") or []) + e2["group"]}
         except Exception as ex:  # noqa: BLE001
             log(f"- {name}: estkRs 실패 {ex}")
             e = {}
