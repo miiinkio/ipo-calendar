@@ -13,27 +13,25 @@
 - 레몬헬스케어: DART 목록에서 못 찾음 (norm=레몬헬스케어, 비슷한 이름: [])
 - 레메디: DART 목록에서 못 찾음 (norm=레메디, 비슷한 이름: [])
 - 에이치엘지노믹스: DART 목록에서 못 찾음 (norm=에이치엘지노믹스, 비슷한 이름: ['에이프로젠', '에이엘로봇', '휴림에이텍', '에이NH스트럭쳐', '아이에이'])
-- 인제니아테라퓨틱스: dart_rcp=20260804000371, doc_checked=20260728000402, inst_fee=있음, demand_start=2026-07-20, demand_end=2026-07-24
-- 딜리셔스: doc_checked=20260731000431, listed_shares=21856960, inst_fee=있음, demand_start=2026-07-23, demand_end=2026-07-29
-- 케이앤에스아이앤씨: dart_rcp=20260807000525, doc_checked=20260803000167, listed_shares=10260882, inst_fee=있음, demand_start=2026-07-27, demand_end=2026-07-31
-- 기도산업: doc_checked=20260810000684, listed_shares=5843707, inst_fee=있음, demand_start=2026-07-31, demand_end=2026-08-06
-- 니어스랩: doc_checked=20260811000064, listed_shares=5771485, inst_fee=있음, demand_start=2026-08-03, demand_end=2026-08-07
-- 해치텍: doc_checked=20260810000669, listed_shares=5517150, inst_fee=있음, demand_start=2026-08-03, demand_end=2026-08-07
-- 스카이랩스: dart_rcp=20260825000417, offer_shares=2000000, price_final=10000, doc_checked=20260825000414, listed_shares=18741977, inst_fee=있음, demand_start=2026-08-14, demand_end=2026-08-21
-- NH스팩34호: dart_rcp=20260821000028, offer_shares=8500000, doc_checked=20260821000028, listed_shares=9050000, inst_fee=있음
-- KB스팩34호: dart_rcp=20260824000116, doc_checked=20260824000116, listed_shares=7210000, inst_fee=없음, demand_start=2026-09-04, demand_end=2026-09-07
-- 한국스팩17호: dart_rcp=20260814004091, doc_checked=20260814004091, listed_shares=8700000, inst_fee=있음, demand_start=2026-09-07, demand_end=2026-09-08
-- 네오사피엔스: dart_rcp=20260814003426, offer_shares=2000000, doc_checked=20260814003426, listed_shares=12195845, inst_fee=있음, demand_start=2026-09-02, demand_end=2026-09-08
-- 와이즈플래닛컴퍼니: dart_rcp=20260818000130, doc_checked=20260818000130, listed_shares=10004030, inst_fee=있음, demand_start=2026-09-04, demand_end=2026-09-10
-- 빅웨이브로보틱스: dart_rcp=20260821000538, doc_checked=20260821000538, listed_shares=10652411, inst_fee=있음, demand_start=2026-09-07, demand_end=2026-09-11
-- 글로벌테크놀로지: dart_rcp=20260819000337, offer_shares=4000000, doc_checked=20260819000337, listed_shares=19583067, inst_fee=있음, demand_start=2026-09-07, demand_end=2026-09-11
-- 덕산넵코어스: dart_rcp=20260814004199, offer_shares=3000000, doc_checked=20260814004199, listed_shares=18876041, inst_fee=있음, demand_start=2026-09-08, demand_end=2026-09-14
-  ! 원문 zip 아님 (20260825000494): b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><result><status>014</status><message>\xed\x8c\x8c\xec\x9d\xbc\xec\x9d\xb4 \xec\xa1\xb4\xec\x9e\xac\xed\x95\x98\xec\xa7\x80 \xec\x95\x8a\xec\x8a'
-  ! 원문 zip 아님 (20260825000494): b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><result><status>014</status><message>\xed\x8c\x8c\xec\x9d\xbc\xec\x9d\xb4 \xec\xa1\xb4\xec\x9e\xac\xed\x95\x98\xec\xa7\x80 \xec\x95\x8a\xec\x8a'
-- 브릴스: dart_rcp=20260825000494, doc_checked=20260825000494
-- 멜콘: dart_rcp=20260821000368, doc_checked=20260821000368, listed_shares=12575000, inst_fee=있음, demand_start=2026-09-16, demand_end=2026-09-22
+- 인제니아테라퓨틱스: 변경 없음
+- 딜리셔스: 변경 없음
+- 케이앤에스아이앤씨: 변경 없음
+- 기도산업: 변경 없음
+- 니어스랩: 변경 없음
+- 해치텍: 변경 없음
+- 스카이랩스: 변경 없음
+- NH스팩34호: 변경 없음
+- KB스팩34호: 변경 없음
+- 한국스팩17호: 변경 없음
+- 네오사피엔스: 변경 없음
+- 와이즈플래닛컴퍼니: 변경 없음
+- 빅웨이브로보틱스: 변경 없음
+- 글로벌테크놀로지: 변경 없음
+- 덕산넵코어스: 변경 없음
+- 브릴스: 변경 없음
+- 멜콘: 변경 없음
 - 진코스텍: DART 목록에서 못 찾음 (norm=진코스텍, 비슷한 이름: [])
-- 엘리스그룹: dart_rcp=20260821000670, doc_checked=20260821000670, listed_shares=11109799, inst_fee=있음, demand_start=2026-09-09, demand_end=2026-09-15
+- 엘리스그룹: 변경 없음
 - 엠에스바이오: DART 목록에서 못 찾음 (norm=엠에스바이오, 비슷한 이름: [])
 - 디티에스: DART 목록에서 못 찾음 (norm=디티에스, 비슷한 이름: [])
 - SK증권스팩14호: DART 목록에서 못 찾음 (norm=SK스팩14호, 비슷한 이름: ['SK', 'SK렌터카', 'SKAI', 'SK이노베이션', 'SK디앤디'])
@@ -42,7 +40,7 @@
 - 한화플러스스팩6호: DART 목록에서 못 찾음 (norm=한화플러스스팩6호, 비슷한 이름: ['한화투자', '한화생명', '한화리츠', '한화', '한화솔루션'])
 - 인텔리빅스: DART 목록에서 못 찾음 (norm=인텔리빅스, 비슷한 이름: [])
 - 영광: DART 목록에서 못 찾음 (norm=영광, 비슷한 이름: ['영광와이케이엠씨'])
-- 래블업: dart_rcp=20260825000318
+- 래블업: 변경 없음
 - 이에스티: DART 목록에서 못 찾음 (norm=이에스티, 비슷한 이름: ['씨아이에스케미칼', '아이에이'])
 - 아이엠스팩1호: 변경 없음
 - 바로팜: 변경 없음
@@ -51,7 +49,8 @@
 - 영광와이케이엠씨: 변경 없음
 - 옵토닉스: 변경 없음
 - 에이엘로봇: 변경 없음
-- 하나에어로다이내믹스: DART 목록에서 못 찾음 (norm=하나에어로다이내믹스, 비슷한 이름: ['하나', '하나은행', '하나카드', '하나캐피탈', '하나금융지주'])
+  하나에어로다이내믹스: DART 회사명 '하나에어로'로 찾음
+- 하나에어로다이내믹스: 변경 없음
 - 씨앤엠: 변경 없음
 - 엠비디: 변경 없음
 - 제이앤티지: 변경 없음
@@ -132,5 +131,4 @@
   제외 성원에너텍 ([기재정정]소액공모공시서류(지분증권) 20260804000264): 이미 상장된 회사의 유상증자 등
   참고: 조회기간(20260826~20261123) 밖이라 DART 목록에 안 보이는 캘린더 종목: 한화머시너리앤서비스홀딩스, 코스모로보틱스, 폴레드, 마키나락스, 대신밸런스스팩20호, 피스피스스튜디오, 메리츠스팩2호, 스트라드비젼, 져스텍, 한국스팩16호, 매드업, 레몬헬스케어, 레메디, 에이치엘지노믹스, 진코스텍, 엠에스바이오, 디티에스, SK증권스팩14호, 티앤이코리아, 크리에이츠, 한화플러스스팩6호, 인텔리빅스, 영광, 이에스티, 하나에어로다이내믹스, 케이엠에프
 
-변경 19종목
-data/ipo.json 저장함
+변경 0종목
