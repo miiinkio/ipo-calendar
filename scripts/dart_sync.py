@@ -283,12 +283,13 @@ def main() -> int:
     end_old = (today - dt.timedelta(days=90)).strftime("%Y%m%d")
     filings: dict[str, list[dict]] = {}
     for wb, we in ((bgn, end), (bgn_old, end_old)):
-        for page in range(1, 20):
+        for page in range(1, 200):  # 끝 페이지까지 전부 (예전엔 19쪽에서 끊겨 일부 종목이 빠졌음)
             d = call_json("list.json", bgn_de=wb, end_de=we, pblntf_ty="C", pblntf_detail_ty="C001", page_no=page, page_count=100)
             for it in d.get("list") or []:
                 filings.setdefault(norm(it["corp_name"]), []).append(it)
             if page >= int(d.get("total_page") or 1):
                 break
+        log(f"  조회 {wb}~{we}: {page}쪽")
     log(f"증권신고서(지분증권) {sum(map(len, filings.values()))}건, 회사 {len(filings)}곳")
 
     changes: list[str] = []
