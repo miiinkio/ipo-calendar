@@ -33,7 +33,7 @@ KEY = os.environ.get("DART_API_KEY", "").strip()
 DRY = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 KST = dt.timezone(dt.timedelta(hours=9))
 ORDER = ["name", "market", "type", "demand_start", "demand_end", "sub_start", "sub_end", "refund", "listing",
-         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked", "listing_docs", "withdrawn", "listing_src"]
+         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked", "listing_docs", "withdrawn", "listing_src", "corp_code"]
 log_lines: list[str] = []
 SKIP = ""
 AUDIT = ROOT / "data" / "dart_audit.json"
@@ -303,6 +303,16 @@ def main() -> int:
         name = r["name"]
         key = norm(aliases.get(name, name))
         fs = sorted(filings.get(key, []), key=lambda x: x["rcept_no"], reverse=True)
+        if not fs:
+            # 회사명이 바뀌었거나 표기가 다를 때: 회사코드 → 예전 접수번호 순으로 찾기
+            for k2, f2 in filings.items():
+                if (r.get("corp_code") and any(f["corp_code"] == r["corp_code"] for f in f2)) or \
+                   (r.get("dart_rcp") and any(f["rcept_no"] == r["dart_rcp"] for f in f2)):
+                    fs = sorted(f2, key=lambda x: x["rcept_no"], reverse=True)
+                    log(f"  {name}: DART 회사명 '{fs[0]['corp_name']}'로 찾음")
+                    break
+        if fs and r.get("corp_code") != fs[0]["corp_code"]:
+            r["corp_code"] = fs[0]["corp_code"]
         if not fs:
             sim = [k for k in filings if name[:2] in k or key[:2] in k][:5]
             log(f"- {name}: DART 목록에서 못 찾음 (norm={key}, 비슷한 이름: {sim})")
