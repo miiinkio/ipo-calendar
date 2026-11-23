@@ -149,6 +149,14 @@ def parse_doc(t: str) -> dict:
     # 정정신고서 표: '수요예측일 (정정 전) A ~ B (정정 후) C ~ D' → 정정 후 날짜 사용
     D_ = r"(\d{4}\s*년\s*\d{1,2}\s*월\s*\d{1,2}\s*일)(?:\s*\([^)]{1,3}\))?"
     pair = re.compile(r"수요\s*예측\s*(?:일|기간|일정)\s*" + D_ + r"\s*~\s*" + D_ + r"(?:\s*" + D_ + r"\s*~\s*" + D_ + r")?")
+    # '수요예측 예정일은 2026년 11월 27일(금) ~ 12월 03일(목)입니다' 형태 (끝 날짜에 연도 없을 수 있음)
+    m2 = re.search(r"수요\s*예측\s*(?:예정)?\s*(?:일|기간|일정)\s*(?:은|는)?\s*" + D_ + r"\s*~\s*((?:\d{4}\s*년\s*)?\d{1,2}\s*월\s*\d{1,2}\s*일)", t)
+    if m2:
+        da = dates_in(m2.group(1))
+        e_txt = m2.group(2) if re.match(r"\d{4}", m2.group(2)) else f"{da[0][:4] if da else ''}년 {m2.group(2)}"
+        db = dates_in(e_txt)
+        if da and db and da[0] <= db[0]:
+            out["demand_start"], out["demand_end"] = da[0], db[0]
     m = pair.search(t)
     if m:
         g = m.groups()
@@ -294,7 +302,8 @@ def main() -> int:
         key = norm(aliases.get(name, name))
         fs = sorted(filings.get(key, []), key=lambda x: x["rcept_no"], reverse=True)
         if not fs:
-            log(f"- {name}: DART 목록에서 못 찾음 (norm={key})")
+            sim = [k for k in filings if name[:2] in k or key[:2] in k][:5]
+            log(f"- {name}: DART 목록에서 못 찾음 (norm={key}, 비슷한 이름: {sim})")
             continue
         latest = fs[0]
         corp = latest["corp_code"]
@@ -354,9 +363,6 @@ def main() -> int:
             _txt = document_text(body0["rcept_no"])
             _txt = document_text(body0["rcept_no"])
             info = parse_doc(_txt)
-            if upcoming and not info.get("demand_start"):
-                for _m in list(re.finditer(r"수요\s*예측", _txt))[:8]:
-                    log(f"  [수요예측 문구 {name}] …{_txt[_m.start(): _m.start() + 150]}…")
             for k in ("listed_shares", "inst_fee"):
                 if r.get(k) is None and info.get(k) is not None:
                     upd[k] = info[k]
