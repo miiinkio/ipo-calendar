@@ -417,7 +417,15 @@ def main() -> int:
         # 상장일: 비어 있으면 최근 신고서(발행조건확정·투자설명서 포함)를 새로 올라온 것만 읽어 찾음
         if (r.get("listing") is None or r.get("listing_src") in ("news", "user")) and r.get("sub_end") and r["sub_end"] >= (today - dt.timedelta(days=30)).isoformat():
             seen = list(r.get("listing_docs") or [])
-            for f in fs[:3]:
+            # 상장일은 납입 뒤 올라오는 '증권발행실적보고서'에 '상장일(매매개시일)'로 확정 기재됨 → 회사 전체 공시에서 찾아 먼저 읽음
+            cand = list(fs[:3])
+            if r.get("refund") and r["refund"] <= today.isoformat():
+                try:
+                    allc = call_json("list.json", corp_code=corp, bgn_de=bgn, end_de=end, pblntf_ty="C", page_count=100).get("list") or []
+                    cand = [f for f in allc if "실적보고서" in f.get("report_nm", "")][:2] + cand
+                except Exception:  # noqa: BLE001
+                    pass
+            for f in cand:
                 if f["rcept_no"] in seen:
                     continue
                 seen.append(f["rcept_no"])
