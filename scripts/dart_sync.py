@@ -33,7 +33,7 @@ KEY = os.environ.get("DART_API_KEY", "").strip()
 DRY = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 KST = dt.timezone(dt.timedelta(hours=9))
 ORDER = ["name", "market", "type", "demand_start", "demand_end", "sub_start", "sub_end", "refund", "listing",
-         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked", "listing_docs", "withdrawn", "listing_src", "corp_code"]
+         "band_low", "band_high", "price_final", "underwriter", "inst_fee", "dart_rcp", "listed_shares", "offer_shares", "note", "doc_checked", "listing_docs", "withdrawn", "listing_src", "corp_code", "listing_probe"]
 log_lines: list[str] = []
 SKIP = ""
 AUDIT = ROOT / "data" / "dart_audit.json"
@@ -404,6 +404,16 @@ def main() -> int:
                 upd["note"] = ((r.get("note") or "") + "; " if r.get("note") else "") + f"공모 철회({wd['rcept_dt'][4:6]}/{wd['rcept_dt'][6:]}, DART)"
                 upd["dart_rcp"] = wd["rcept_no"]
                 log(f"  {name}: 공모 철회 확인 ({wd['report_nm']} {wd['rcept_no']})")
+        # 기사로 넣은 상장일이 DART 원문 어디에 어떻게 적혀 있는지 기록 (읽기 규칙 보완용)
+        if r.get("listing_src") == "news" and r.get("listing") and not r.get("listing_probe"):
+            y, mo, dd = r["listing"].split("-")
+            pat = re.compile(rf"{int(mo)}\s*월\s*0?{int(dd)}\s*일|{y}\.\s*{mo}\.\s*{dd}|{y}-{mo}-{dd}")
+            for f in fs[:2]:
+                t_ = document_text(f["rcept_no"])
+                hits = [t_[max(0, m_.start() - 90): m_.end() + 20] for m_ in pat.finditer(t_)][:4]
+                for h in hits:
+                    log(f"  [상장일 문구 {name} {f['rcept_no']}] …{h}…")
+            upd["listing_probe"] = True
         # 상장일: 비어 있으면 최근 신고서(발행조건확정·투자설명서 포함)를 새로 올라온 것만 읽어 찾음
         if (r.get("listing") is None or r.get("listing_src") in ("news", "user")) and r.get("sub_end") and r["sub_end"] >= (today - dt.timedelta(days=30)).isoformat():
             seen = list(r.get("listing_docs") or [])
